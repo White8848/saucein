@@ -1,5 +1,6 @@
 // AI assistant flow: Chat → Recommend → Step → Complete + the Voice modal.
 
+import { useState, useRef, useEffect } from 'react';
 import { PhoneFrame, HomeIndicator } from '../components/PhoneFrame.jsx';
 import { CircleButton } from '../components/CircleButton.jsx';
 import { FoodThumb } from '../components/FoodThumb.jsx';
@@ -8,24 +9,55 @@ import { heroBg } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
 import { useRecipes } from "../lib/recipes.jsx";
 import { glass, pinkBg } from '../lib/theme.js';
+import { chat } from '../lib/ai.js';
 
 // ─────────────────────────────────────────────────────────────
 // AI Chat — full conversation with the chef
 // ─────────────────────────────────────────────────────────────
+// Welcome message shown at the top of a fresh chat session.
+const WELCOME = {
+  role: 'assistant',
+  content: '你好,我是陈师傅。今天想做点啥?跟我说你冰箱里有的食材,或者直接告诉我口味偏好。',
+};
+
+const SUGGESTIONS = ['今晚做什么下饭菜?', '半小时内能搞定的快手菜', '少辣一点,家里老人血压高'];
+
 export function AiChatScreen({ t }) {
   const nav = useNav();
-  const { recipes } = useRecipes();
-  const bubbles = [
-    { role: 'a', text: '晚上好。我是你的私人大厨。今晚冰箱里有什么 ?' },
-    { role: 'u', text: '一把蒜苔 + 一点猪肉末。' },
-    { role: 'a', text: '蒜苔炒肉末很合适。12 分钟出锅, 调味机会自动配生抽 + 一点蚝油。' },
-    { role: 'u', text: '能少咸一点吗 ? 我太太血压高。' },
-    {
-      role: 'a',
-      text: '可以。我把生抽从 12 g 降到 8 g, 再补 4 g 蒜末提香。整体偏鲜香。开始引导 ?',
-      cta: true,
-    },
-  ];
+  const [messages, setMessages] = useState([WELCOME]);
+  const [text, setText] = useState('');
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState(null);
+  const scrollRef = useRef(null);
+
+  // Keep the latest message in view when the list grows.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages.length, pending]);
+
+  async function send(content) {
+    const trimmed = content.trim();
+    if (!trimmed || pending) return;
+    const next = [...messages, { role: 'user', content: trimmed }];
+    setMessages(next);
+    setText('');
+    setPending(true);
+    setError(null);
+    try {
+      const reply = await chat(next);
+      setMessages((cur) => [...cur, { role: 'assistant', content: reply }]);
+    } catch (e) {
+      setError(e.message || 'AI 暂时不在状态,稍后再试');
+    } finally {
+      setPending(false);
+    }
+  }
+
+  function onSubmit(ev) {
+    ev?.preventDefault();
+    send(text);
+  }
 
   return (
     <PhoneFrame t={t} screen="05 AI 对话 Chat">
@@ -41,9 +73,15 @@ export function AiChatScreen({ t }) {
           <CircleButton t={t} icon="close" onClick={() => nav.setTab('home')} />
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 6, height: 6, borderRadius: 3, background: t.success }} />
+              <div
+                style={{
+                  width: 6, height: 6, borderRadius: 3,
+                  background: pending ? t.accent : t.success,
+                  transition: 'background 0.2s',
+                }}
+              />
               <div style={{ fontSize: 11, color: t.textSec, letterSpacing: 0.4, fontWeight: 500 }}>
-                AI 大厨 · 在线
+                {pending ? 'AI 大厨 · 思考中⋯' : 'AI 大厨 · 在线'}
               </div>
             </div>
             <div style={{ fontSize: 16, fontWeight: t.titleWeight, letterSpacing: -0.2, marginTop: 1 }}>
@@ -55,76 +93,92 @@ export function AiChatScreen({ t }) {
 
         {/* messages */}
         <div
+          ref={scrollRef}
           style={{
             flex: 1, overflow: 'auto',
             padding: '16px 20px 8px',
             display: 'flex', flexDirection: 'column', gap: 10,
           }}
         >
-          <div
-            style={{
-              alignSelf: 'center',
-              fontSize: 11, color: t.textTer,
-              padding: '4px 10px', borderRadius: 100,
-              ...glass("softer"),
-              marginBottom: 4,
-            }}
-          >
-            今天 · 19:24
-          </div>
-          {bubbles.map((b, i) => (
-            <div key={i} className="anim-bubble-in" style={{ animationDelay: `${i * 0.15}s` }}>
-              <ChatBubble t={t} role={b.role} text={b.text} cta={b.cta} onCta={() => nav.push('step')} />
+          {messages.map((m, i) => (
+            <div key={i} className="anim-bubble-in">
+              <ChatBubble t={t} role={m.role} text={m.content} />
             </div>
           ))}
-          <div className="anim-bubble-in" style={{ animationDelay: `${bubbles.length * 0.15}s` }}>
-            <RecipeChatCard t={t} r={recipes.find((r) => r.id === 'suntai')} onClick={() => nav.push('detail', { recipeId: 'suntai' })} />
-          </div>
-          <div
-            className="anim-bubble-in"
-            style={{ animationDelay: `${(bubbles.length + 1) * 0.15}s`, alignSelf: 'flex-start' }}
-          >
-            <TypingBubble t={t} />
-          </div>
-        </div>
-
-        {/* suggestion chips */}
-        <div style={{ padding: '4px 16px 0', display: 'flex', gap: 6, overflowX: 'hidden' }}>
-          {['少辣一点', '换成宫保鸡丁', '看看食谱'].map((c) => (
-            <div
-              key={c}
-              style={{
-                padding: '7px 12px', borderRadius: 100,
-                ...glass("soft"),
-                fontSize: 12, color: t.text, fontWeight: 500,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {c}
+          {pending && (
+            <div className="anim-bubble-in" style={{ alignSelf: 'flex-start' }}>
+              <TypingBubble t={t} />
             </div>
-          ))}
+          )}
+          {error && (
+            <div className="anim-bubble-in" style={{ alignSelf: 'flex-start' }}>
+              <ChatBubble t={t} role="error" text={`⚠️ ${error}`} />
+            </div>
+          )}
         </div>
 
-        {/* input */}
-        <div style={{ padding: '12px 16px 32px', display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* suggestion chips — only show on a clean conversation to nudge first input */}
+        {messages.length <= 1 && !pending && (
+          <div style={{ padding: '4px 16px 0', display: 'flex', gap: 6, overflowX: 'auto' }}>
+            {SUGGESTIONS.map((c) => (
+              <button
+                key={c}
+                onClick={() => send(c)}
+                style={{
+                  padding: '7px 12px', borderRadius: 100,
+                  ...glass('soft'),
+                  border: 'none', cursor: 'pointer',
+                  fontSize: 12, color: t.text, fontWeight: 500,
+                  whiteSpace: 'nowrap', fontFamily: t.font,
+                }}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* input — controlled, Enter submits */}
+        <form
+          onSubmit={onSubmit}
+          style={{ padding: '12px 16px 32px', display: 'flex', alignItems: 'center', gap: 8 }}
+        >
           <div
             style={{
-              flex: 1, height: 48, borderRadius: 24, ...glass("soft"),
+              flex: 1, height: 48, borderRadius: 24, ...glass('soft'),
               display: 'flex', alignItems: 'center', padding: '0 16px',
             }}
           >
-            <span style={{ fontSize: 14, color: t.textTer, flex: 1 }}>跟陈师傅说...</span>
+            <input
+              type="text"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="跟陈师傅说..."
+              disabled={pending}
+              style={{
+                flex: 1, fontSize: 14, color: t.text,
+                background: 'transparent', border: 'none', outline: 'none',
+                fontFamily: t.font,
+              }}
+            />
             <Icon name="mic" size={20} color={t.textSec} stroke={1.6} />
           </div>
-          <div
+          <button
+            type="submit"
+            disabled={!text.trim() || pending}
+            aria-label="发送"
             style={{
               width: 48, height: 48, borderRadius: 24, ...pinkBg,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: 'none', cursor: text.trim() && !pending ? 'pointer' : 'default',
+              opacity: text.trim() && !pending ? 1 : 0.55,
+              transition: 'opacity 0.15s',
+              padding: 0,
             }}
           >
             <Icon name="send" size={20} color={t.accentText} stroke={1.8} />
-          </div>
-        </div>
+          </button>
+        </form>
 
         <HomeIndicator t={t} />
       </div>
@@ -149,18 +203,20 @@ function TypingBubble({ t }) {
 }
 
 function ChatBubble({ t, role, text, cta, onCta }) {
-  const isUser = role === 'u';
+  const isUser = role === 'user' || role === 'u';
+  const isError = role === 'error';
   return (
     <div style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', maxWidth: '100%' }}>
       <div
         style={{
           maxWidth: 280,
-          background: isUser ? t.accent : t.soft,
-          color: isUser ? t.accentText : t.text,
+          ...(isUser ? pinkBg : isError ? { background: t.accentSoft } : glass('soft')),
+          color: isUser ? t.accentText : isError ? t.accent : t.text,
           padding: '10px 14px', borderRadius: 18,
           borderBottomRightRadius: isUser ? 4 : 18,
           borderBottomLeftRadius:  isUser ? 18 : 4,
           fontSize: 14, lineHeight: 1.5, letterSpacing: -0.1,
+          whiteSpace: 'pre-wrap',
         }}
       >
         {text}
