@@ -103,6 +103,168 @@ export function getSauceById(id) {
 // Kept as a back-compat alias for any caller still importing the old name.
 export const YUXIANG_RATIO = SAUCES[0].ratio;
 
+// Per-recipe sauce profiles. Each entry mirrors the SAUCES[] shape so the
+// ratio screen can render it without branching. Used by the "调味机自动配料"
+// card on the recipe detail page. Keep ingredient list short (4–6 items) so
+// the slider stack fits without scrolling.
+export const RECIPE_SAUCES = {
+  yuxiang: {
+    name: '鱼香汁', sub: '咸甜微辣 · 带荔枝口',
+    ratio: SAUCES[0].ratio,
+  },
+  boluo: {
+    name: '糖醋汁', sub: '酸甜开胃 · 适合排骨',
+    ratio: [
+      { key: 'sugar',     label: '白糖',   grams: 20, max: 35 },
+      { key: 'vinegar',   label: '香醋',   grams: 18, max: 30 },
+      { key: 'soy_light', label: '生抽',   grams: 10, max: 25 },
+      { key: 'cooking_w', label: '料酒',   grams: 6,  max: 20 },
+      { key: 'starch_w',  label: '水淀粉', grams: 12, max: 30 },
+    ],
+  },
+  suntai: {
+    name: '咸鲜炒汁', sub: '生抽蚝油打底',
+    ratio: [
+      { key: 'soy_light', label: '生抽',   grams: 12, max: 25 },
+      { key: 'oyster',    label: '蚝油',   grams: 8,  max: 20 },
+      { key: 'cooking_w', label: '料酒',   grams: 5,  max: 15 },
+      { key: 'sugar',     label: '白糖',   grams: 3,  max: 12 },
+    ],
+  },
+  lemon_x: {
+    name: '酸辣柠檬汁', sub: '清爽带椒香',
+    ratio: [
+      { key: 'vinegar',   label: '香醋',   grams: 14, max: 30 },
+      { key: 'chili_oil', label: '辣椒油', grams: 8,  max: 20 },
+      { key: 'sugar',     label: '白糖',   grams: 6,  max: 20 },
+      { key: 'soy_light', label: '生抽',   grams: 6,  max: 20 },
+      { key: 'salt',      label: '海盐',   grams: 2,  max: 10 },
+    ],
+  },
+  pidan: {
+    name: '蒜香凉拌汁', sub: '生抽香油配蒜末',
+    ratio: [
+      { key: 'soy_light',  label: '生抽', grams: 14, max: 25 },
+      { key: 'vinegar',    label: '香醋', grams: 8,  max: 20 },
+      { key: 'sesame_oil', label: '香油', grams: 6,  max: 15 },
+      { key: 'sugar',      label: '白糖', grams: 3,  max: 12 },
+      { key: 'salt',       label: '海盐', grams: 1,  max: 8 },
+    ],
+  },
+  shengcai: {
+    name: '蚝油蒜蓉汁', sub: '鲜咸过水生菜',
+    ratio: [
+      { key: 'oyster',     label: '蚝油', grams: 16, max: 30 },
+      { key: 'soy_light',  label: '生抽', grams: 8,  max: 20 },
+      { key: 'sugar',      label: '白糖', grams: 3,  max: 12 },
+      { key: 'sesame_oil', label: '香油', grams: 4,  max: 12 },
+    ],
+  },
+  tudou_niurou: {
+    name: '红烧炖汁', sub: '老抽收汁 · 软糯入味',
+    ratio: [
+      { key: 'soy_light', label: '生抽', grams: 12, max: 25 },
+      { key: 'soy_dark',  label: '老抽', grams: 4,  max: 15 },
+      { key: 'oyster',    label: '蚝油', grams: 8,  max: 20 },
+      { key: 'sugar',     label: '白糖', grams: 6,  max: 18 },
+      { key: 'cooking_w', label: '料酒', grams: 8,  max: 20 },
+    ],
+  },
+  kele_jichi: {
+    name: '可乐酱汁', sub: '甜咸经典 · 焦糖色',
+    ratio: [
+      { key: 'soy_light', label: '生抽', grams: 10, max: 25 },
+      { key: 'soy_dark',  label: '老抽', grams: 5,  max: 15 },
+      { key: 'oyster',    label: '蚝油', grams: 8,  max: 20 },
+      { key: 'sugar',     label: '白糖', grams: 14, max: 25 },
+      { key: 'cooking_w', label: '料酒', grams: 6,  max: 15 },
+    ],
+  },
+  rumo_zhengdan: {
+    name: '蒸蛋调味汁', sub: '蚝油生抽 · 嫩滑',
+    ratio: [
+      { key: 'soy_light', label: '生抽', grams: 10, max: 20 },
+      { key: 'oyster',    label: '蚝油', grams: 6,  max: 15 },
+      { key: 'salt',      label: '海盐', grams: 1,  max: 6 },
+      { key: 'sesame_oil', label: '香油', grams: 3, max: 10 },
+    ],
+  },
+  liangban_mian: {
+    name: '麻辣凉拌汁', sub: '芝麻辣油 · 夏日',
+    ratio: [
+      { key: 'soy_light',  label: '生抽',   grams: 14, max: 28 },
+      { key: 'vinegar',    label: '香醋',   grams: 12, max: 25 },
+      { key: 'chili_oil',  label: '辣椒油', grams: 12, max: 25 },
+      { key: 'sesame_oil', label: '香油',   grams: 6,  max: 15 },
+      { key: 'sugar',      label: '白糖',   grams: 4,  max: 12 },
+    ],
+  },
+  koushui_ji: {
+    name: '椒麻口水汁', sub: '川味凉鸡 · 麻辣鲜',
+    ratio: [
+      { key: 'soy_light',  label: '生抽',   grams: 16, max: 28 },
+      { key: 'chili_oil',  label: '辣椒油', grams: 16, max: 30 },
+      { key: 'sesame_oil', label: '香油',   grams: 6,  max: 15 },
+      { key: 'sugar',      label: '白糖',   grams: 6,  max: 18 },
+      { key: 'vinegar',    label: '香醋',   grams: 4,  max: 15 },
+    ],
+  },
+  shousi_baocai: {
+    name: '酸辣手撕汁', sub: '蒜辣开胃 · 脆爽',
+    ratio: [
+      { key: 'vinegar',   label: '香醋',   grams: 14, max: 28 },
+      { key: 'soy_light', label: '生抽',   grams: 10, max: 22 },
+      { key: 'chili_oil', label: '辣椒油', grams: 10, max: 22 },
+      { key: 'sugar',     label: '白糖',   grams: 6,  max: 15 },
+      { key: 'oyster',    label: '蚝油',   grams: 4,  max: 12 },
+    ],
+  },
+  fensi_baocai: {
+    name: '咸鲜炒汁', sub: '老抽蚝油 · 下饭',
+    ratio: [
+      { key: 'soy_light', label: '生抽', grams: 10, max: 22 },
+      { key: 'soy_dark',  label: '老抽', grams: 3,  max: 10 },
+      { key: 'oyster',    label: '蚝油', grams: 6,  max: 18 },
+      { key: 'salt',      label: '海盐', grams: 2,  max: 8 },
+    ],
+  },
+  shanyao_tang: {
+    name: '清汤底味', sub: '盐 + 料酒 · 鲜美',
+    ratio: [
+      { key: 'salt',      label: '海盐', grams: 4,  max: 10 },
+      { key: 'cooking_w', label: '料酒', grams: 8,  max: 20 },
+      { key: 'soy_light', label: '生抽', grams: 4,  max: 12 },
+    ],
+  },
+  congyou_ji: {
+    name: '葱油焖汁', sub: '葱香咸鲜 · 收汁',
+    ratio: [
+      { key: 'soy_light',  label: '生抽', grams: 14, max: 25 },
+      { key: 'soy_dark',   label: '老抽', grams: 3,  max: 10 },
+      { key: 'oyster',     label: '蚝油', grams: 8,  max: 20 },
+      { key: 'cooking_w',  label: '料酒', grams: 8,  max: 18 },
+      { key: 'sesame_oil', label: '香油', grams: 4,  max: 12 },
+    ],
+  },
+  cuipi_doufu: {
+    name: '酥脆豆腐汁', sub: '咸甜微辣 · 外脆里嫩',
+    ratio: [
+      { key: 'soy_light', label: '生抽',   grams: 12, max: 25 },
+      { key: 'chili_oil', label: '辣椒油', grams: 8,  max: 20 },
+      { key: 'sugar',     label: '白糖',   grams: 6,  max: 18 },
+      { key: 'vinegar',   label: '香醋',   grams: 4,  max: 12 },
+      { key: 'starch_w',  label: '水淀粉', grams: 10, max: 25 },
+    ],
+  },
+};
+
+// Resolve a per-recipe sauce profile. Returns null when no profile exists
+// — caller picks its own fallback (the ratio screen falls back to the yuxiang
+// sauce from the user library so the slider UI never renders empty).
+export function getRecipeSauce(recipeId) {
+  return RECIPE_SAUCES[recipeId] || null;
+}
+
 // "Food photo" — layered radial gradients on a hue, used as a placeholder
 // when a real .jpg isn't provided.
 export function foodBg(r) {

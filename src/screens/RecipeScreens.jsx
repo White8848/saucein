@@ -6,7 +6,7 @@ import { CircleButton } from '../components/CircleButton.jsx';
 import { TabBar } from '../components/TabBar.jsx';
 import { FoodThumb } from '../components/FoodThumb.jsx';
 import { Icon } from '../lib/Icon.jsx';
-import { SEASONINGS, YUXIANG_RATIO, heroBg } from '../lib/data.js';
+import { SEASONINGS, heroBg, getRecipeSauce } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
 import { useRecipes, fetchRecipeDetail } from "../lib/recipes.jsx";
 import { useLocalStorage } from '../lib/storage.js';
@@ -263,10 +263,18 @@ export function RecipeDetailScreen({ t }) {
 
   if (!r) return null;
 
-  const isYuxiang = r.id === 'yuxiang';
-  const sauceName = isYuxiang ? '鱼香汁 · 71 g' : `${r.name}专用酱汁`;
-  const sauceSub = isYuxiang
-    ? '咸甜微辣 · 带荔枝口'
+  // Per-recipe sauce profile (data.js::RECIPE_SAUCES). Falls back to the
+  // recipe's tag list when a profile hasn't been authored yet so the card
+  // still renders something meaningful.
+  const recipeSauce = getRecipeSauce(r.id);
+  const sauceTotalGrams = recipeSauce
+    ? recipeSauce.ratio.reduce((sum, s) => sum + s.grams, 0)
+    : 0;
+  const sauceName = recipeSauce
+    ? `${recipeSauce.name} · ${sauceTotalGrams} g`
+    : `${r.name}专用酱汁`;
+  const sauceSub = recipeSauce
+    ? recipeSauce.sub
     : (r.tags || []).join(' · ') || '调味机自动调配';
   return (
     <PhoneFrame t={t} screen="10 食谱详情 Detail">
@@ -366,7 +374,7 @@ export function RecipeDetailScreen({ t }) {
                 调味机自动配料
               </div>
               <button
-                onClick={() => nav.push('ratio')}
+                onClick={() => nav.push('ratio', { recipeId: r.id })}
                 style={{
                   fontSize: 12, color: t.accent, fontWeight: 600,
                   background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
@@ -388,7 +396,7 @@ export function RecipeDetailScreen({ t }) {
               <div style={{ fontSize: 20, fontWeight: 700, marginTop: 2, letterSpacing: -0.3 }}>
                 {sauceSub}
               </div>
-              {isYuxiang && (
+              {recipeSauce ? (
                 <>
                   <div
                     style={{
@@ -396,7 +404,7 @@ export function RecipeDetailScreen({ t }) {
                       borderRadius: 100, overflow: 'hidden',
                     }}
                   >
-                    {YUXIANG_RATIO.map((s) => {
+                    {recipeSauce.ratio.map((s) => {
                       const seasoning = SEASONINGS.find((x) => x.key === s.key);
                       return <div key={s.key} style={{ flex: s.grams, background: seasoning?.color || '#fff' }} />;
                     })}
@@ -407,13 +415,12 @@ export function RecipeDetailScreen({ t }) {
                       marginTop: 10, fontSize: 10, opacity: 0.85,
                     }}
                   >
-                    {YUXIANG_RATIO.slice(0, 4).map((s) => (
+                    {recipeSauce.ratio.slice(0, 4).map((s) => (
                       <span key={s.key}>{s.label} {s.grams}g</span>
                     ))}
                   </div>
                 </>
-              )}
-              {!isYuxiang && (
+              ) : (
                 <div
                   style={{
                     marginTop: 14, fontSize: 11, opacity: 0.85, lineHeight: 1.5,
