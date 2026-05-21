@@ -2,6 +2,7 @@
 // Renders one screen at a time inside a phone frame; nav state drives which.
 
 import { useState, useEffect, useRef } from 'react';
+// (useState/useEffect retained for DevMenu — Stage no longer needs them.)
 import { theme } from './lib/theme.js';
 import { NavProvider, useNav } from './lib/nav.jsx';
 
@@ -131,74 +132,45 @@ function Shell() {
   return (
     <div
       style={{
-        minHeight: '100vh',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background:
-          'radial-gradient(ellipse at top, #f5f1e8 0%, #eae4d4 60%, #ddd5c0 100%)',
+        minHeight: '100dvh',
+        background: theme.bg,
         fontFamily: theme.font,
         position: 'relative',
-        padding: '32px 16px',
-        boxSizing: 'border-box',
       }}
     >
       <Stage />
       <DevMenu />
-      <Branding />
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// Stage — animates between routes inside a 390×844 phone shell.
+// Stage — renders the current route as the whole web app.
+// No phone-shaped wrapper, no page transitions; modals still slide up.
 // ─────────────────────────────────────────────────────────────
 function Stage() {
   const { route, modal } = useNav();
-  const [shown, setShown] = useState(route);
-  const [animKey, setAnimKey] = useState(route);
-
-  // Re-key the wrapper when route changes so CSS animation replays.
-  useEffect(() => {
-    if (route !== shown) {
-      setShown(route);
-      setAnimKey(route);
-    }
-  }, [route, shown]);
-
-  const Screen = SCREENS[shown] || HomeScreen;
+  const Screen = SCREENS[route] || HomeScreen;
   const Modal = modal ? SCREENS[modal] : null;
 
   return (
-    <div
-      style={{
-        width: 390, height: 844,
-        borderRadius: 44,
-        overflow: 'hidden',
-        position: 'relative',
-        boxShadow:
-          '0 1px 1px rgba(0,0,0,0.04), 0 32px 80px -20px rgba(20,18,14,0.28), 0 0 0 1px rgba(0,0,0,0.07)',
-      }}
-    >
-      <div
-        key={animKey}
-        style={{
-          width: '100%', height: '100%',
-          animation: 'route-in 0.32s cubic-bezier(0.32, 0.72, 0, 1)',
-        }}
-      >
-        <Screen t={theme} />
-      </div>
+    <>
+      <Screen t={theme} />
       {Modal && (
         <div
           key={`modal-${modal}`}
           style={{
-            position: 'absolute', inset: 0,
+            position: 'fixed', inset: 0,
+            display: 'flex', justifyContent: 'center',
+            pointerEvents: 'auto',
             animation: 'modal-up 0.34s cubic-bezier(0.32, 0.72, 0, 1)',
+            zIndex: 50,
           }}
         >
           <Modal t={theme} />
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -332,18 +304,3 @@ function DevMenu() {
   );
 }
 
-function Branding() {
-  return (
-    <div
-      style={{
-        position: 'fixed', bottom: 16, left: 0, right: 0,
-        textAlign: 'center', pointerEvents: 'none',
-        fontFamily: theme.font,
-        fontSize: 11, color: 'rgba(0,0,0,0.32)',
-        letterSpacing: 0.4,
-      }}
-    >
-      SAUCEIN · 极简白完整版 · 设计原型
-    </div>
-  );
-}
