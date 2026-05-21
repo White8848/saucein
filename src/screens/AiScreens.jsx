@@ -834,7 +834,13 @@ export function CompleteScreen({ t }) {
           />
         </div>
 
-        <div style={{ flex: 1, padding: '0 28px', display: 'flex', flexDirection: 'column' }}>
+        <div
+          style={{
+            flex: 1, padding: '0 28px',
+            display: 'flex', flexDirection: 'column',
+            position: 'relative', zIndex: 1,
+          }}
+        >
           <div style={{ marginTop: -20, textAlign: 'center' }}>
             <div
               style={{
