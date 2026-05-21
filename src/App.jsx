@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { theme } from './lib/theme.js';
 import { NavProvider, useNav } from './lib/nav.jsx';
 import { RecipesProvider } from './lib/recipes.jsx';
+import { ToastProvider } from './lib/toast.jsx';
 
 import { CoverScreen } from './screens/CoverScreen.jsx';
 import {
@@ -124,9 +125,11 @@ const DEV_GROUPS = [
 export function App() {
   return (
     <RecipesProvider>
-      <NavProvider initial="home">
-        <Shell />
-      </NavProvider>
+      <ToastProvider>
+        <NavProvider initial="home">
+          <Shell />
+        </NavProvider>
+      </ToastProvider>
     </RecipesProvider>
   );
 }

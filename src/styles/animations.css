@@ -11,7 +11,40 @@ body {
   color: #1F1216;
 }
 * { box-sizing: border-box; }
-button { font-family: inherit; cursor: pointer; }
+
+/* ── Button reset + global press feedback ───────────────────────
+   Every <button> inherits font, kills tap-highlight, and gets a
+   subtle press-down (filter + opacity dip) at 120ms — same feel
+   the spec calls for. Inline-styled <div role="button"> elements
+   that should react opt in via `.pressable`. */
+button {
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  background: none;
+  color: inherit;
+  transition: filter 0.12s ease, opacity 0.12s ease, background 0.18s ease, color 0.18s ease;
+}
+button:disabled { cursor: default; opacity: 0.5; }
+button:active, .pressable:active {
+  filter: brightness(0.92);
+  opacity: 0.88;
+}
+.pressable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: filter 0.12s ease, opacity 0.12s ease, background 0.18s ease, color 0.18s ease;
+}
+
+/* Smooth chip / toggle / pill state changes — 150–200ms by default.
+   Applies to anything tagged `.chip`; per-screen styles can still
+   override transition. */
+.chip {
+  transition: background 0.18s ease, color 0.18s ease,
+              border-color 0.18s ease, transform 0.15s ease;
+}
 
 /* Glass + pink-gradient effects now live in React style helpers
    (lib/theme.js → glass(), pinkBg). Each component spreads them

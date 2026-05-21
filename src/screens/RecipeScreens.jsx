@@ -1,6 +1,6 @@
 // Recipe list, detail, and search results.
 
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { PhoneFrame, HomeIndicator } from '../components/PhoneFrame.jsx';
 import { CircleButton } from '../components/CircleButton.jsx';
 import { TabBar } from '../components/TabBar.jsx';
@@ -9,6 +9,7 @@ import { Icon } from '../lib/Icon.jsx';
 import { SEASONINGS, YUXIANG_RATIO, heroBg } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
 import { useRecipes, fetchRecipeDetail } from "../lib/recipes.jsx";
+import { useLocalStorage } from '../lib/storage.js';
 import { glass, pinkBg } from '../lib/theme.js';
 
 // ─────────────────────────────────────────────────────────────
@@ -18,6 +19,16 @@ export function RecipeListScreen({ t }) {
   const nav = useNav();
   const { recipes } = useRecipes();
   const cats = ['全部', '川菜', '家常', '凉菜', '粤菜', '湘菜'];
+  const [cat, setCat] = useState('全部');
+  const showHero = cat === '全部';
+  const filtered = useMemo(
+    () => (cat === '全部' ? recipes : recipes.filter((r) => r.category === cat)),
+    [recipes, cat],
+  );
+  // When hero is showing, the grid shows the "next four" (recipes 1..5);
+  // when filtered, show all matches.
+  const gridItems = showHero ? filtered.slice(1, 5) : filtered;
+
   return (
     <PhoneFrame t={t} screen="09 食谱列表 Recipes">
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -33,9 +44,10 @@ export function RecipeListScreen({ t }) {
               </div>
               <button
                 aria-label="筛选"
+                onClick={() => nav.push('search')}
                 style={{
                   width: 40, height: 40, borderRadius: 20,
-                  ...glass("soft"), border: 'none', cursor: 'pointer',
+                  ...glass("soft"), border: 'none',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
               >
@@ -50,7 +62,7 @@ export function RecipeListScreen({ t }) {
                 marginTop: 14, height: 44, borderRadius: 22, ...glass("soft"),
                 display: 'flex', alignItems: 'center',
                 padding: '0 16px', gap: 10,
-                border: 'none', cursor: 'pointer', fontFamily: t.font,
+                border: 'none', fontFamily: t.font,
                 textAlign: 'left',
               }}
             >
@@ -59,107 +71,120 @@ export function RecipeListScreen({ t }) {
             </button>
           </div>
 
-          {/* categories */}
-          <div style={{ padding: '16px 20px 0', display: 'flex', gap: 8, overflow: 'hidden' }}>
-            {cats.map((c, i) => (
-              <div
-                key={c}
-                style={{
-                  padding: '7px 14px', borderRadius: 100,
-                  background: i === 1 ? t.text : 'transparent',
-                  color: i === 1 ? t.bg : t.textSec,
-                  border: i === 1 ? 'none' : `0.5px solid ${t.line}`,
-                  fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap',
-                }}
-              >
-                {c}
-              </div>
-            ))}
-          </div>
-
-          {/* hot pick */}
-          <div style={{ padding: '20px 20px 0' }}>
-            <button
-              onClick={() => nav.push('detail', { recipeId: recipes[0].id })}
-              style={{
-                width: '100%', padding: 0, border: 'none', cursor: 'pointer',
-                borderRadius: 20, overflow: 'hidden', height: 220,
-                position: 'relative',
-                ...heroBg(recipes[0]),
-              }}
-            >
-              <div
-                style={{
-                  position: 'absolute', inset: 0,
-                  background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent 50%)',
-                }}
-              />
-              <div
-                style={{
-                  position: 'absolute', top: 14, left: 14,
-                  padding: '5px 10px', borderRadius: 100,
-                  background: 'rgba(255,255,255,0.95)', color: '#1A1A1A',
-                  fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
-                  display: 'flex', alignItems: 'center', gap: 4,
-                }}
-              >
-                <Icon name="flame" size={11} color="#C7522A" stroke={2.2} />
-                本周热门
-              </div>
-              <div style={{ position: 'absolute', bottom: 14, left: 14, right: 14, color: '#fff' }}>
-                <div style={{ fontSize: 11, opacity: 0.85, fontWeight: 500, letterSpacing: 0.3, marginBottom: 4 }}>
-                  {recipes[0].english} · 川菜
-                </div>
-                <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, lineHeight: 1.1 }}>
-                  {recipes[0].name}
-                </div>
-                <div style={{ fontSize: 11, marginTop: 6, opacity: 0.85, display: 'flex', gap: 10 }}>
-                  <span>难度 ★★☆</span>
-                  <span>·</span>
-                  <span>{recipes[0].time} 分钟</span>
-                  <span>·</span>
-                  <span>调味机自动配酱</span>
-                </div>
-              </div>
-            </button>
-          </div>
-
-          {/* grid */}
-          <div
-            style={{
-              padding: '16px 20px 0',
-              display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
-            }}
-          >
-            {recipes.slice(1, 5).map((r) => (
-              <button
-                key={r.id}
-                onClick={() => nav.push('detail', { recipeId: r.id })}
-                style={{
-                  padding: 0, background: 'transparent', border: 'none', cursor: 'pointer',
-                  textAlign: 'left', fontFamily: t.font, color: t.text,
-                }}
-              >
-                <FoodThumb r={r} style={{ width: '100%', height: 160, borderRadius: 14 }} />
-                <div
+          {/* categories — single-select; re-tap "全部" is a no-op (keep at least one selected) */}
+          <div style={{ padding: '16px 20px 0', display: 'flex', gap: 8, overflowX: 'auto' }}>
+            {cats.map((c) => {
+              const on = c === cat;
+              return (
+                <button
+                  key={c}
+                  onClick={() => setCat(c)}
+                  className="chip"
                   style={{
-                    marginTop: 8,
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                    padding: '7px 14px', borderRadius: 100,
+                    background: on ? t.text : 'transparent',
+                    color: on ? t.bg : t.textSec,
+                    border: on ? 'none' : `0.5px solid ${t.line}`,
+                    fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap',
                   }}
                 >
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: -0.2 }}>{r.name}</div>
-                    <div style={{ fontSize: 11, color: t.textSec, marginTop: 2 }}>
-                      {r.category} · {r.time}m
-                    </div>
+                  {c}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* hot pick — only on "全部" */}
+          {showHero && filtered[0] && (
+            <div style={{ padding: '20px 20px 0' }}>
+              <button
+                onClick={() => nav.push('detail', { recipeId: filtered[0].id })}
+                style={{
+                  width: '100%', padding: 0, border: 'none',
+                  borderRadius: 20, overflow: 'hidden', height: 220,
+                  position: 'relative',
+                  ...heroBg(filtered[0]),
+                }}
+              >
+                <div
+                  style={{
+                    position: 'absolute', inset: 0,
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent 50%)',
+                  }}
+                />
+                <div
+                  style={{
+                    position: 'absolute', top: 14, left: 14,
+                    padding: '5px 10px', borderRadius: 100,
+                    background: 'rgba(255,255,255,0.95)', color: '#1A1A1A',
+                    fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
+                    display: 'flex', alignItems: 'center', gap: 4,
+                  }}
+                >
+                  <Icon name="flame" size={11} color="#C7522A" stroke={2.2} />
+                  本周热门
+                </div>
+                <div style={{ position: 'absolute', bottom: 14, left: 14, right: 14, color: '#fff' }}>
+                  <div style={{ fontSize: 11, opacity: 0.85, fontWeight: 500, letterSpacing: 0.3, marginBottom: 4 }}>
+                    {filtered[0].english} · {filtered[0].category}
                   </div>
-                  <div style={{ fontSize: 10, color: t.textTer, fontWeight: 600 }}>
-                    {'★'.repeat(r.difficulty) + '☆'.repeat(3 - r.difficulty)}
+                  <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, lineHeight: 1.1 }}>
+                    {filtered[0].name}
+                  </div>
+                  <div style={{ fontSize: 11, marginTop: 6, opacity: 0.85, display: 'flex', gap: 10 }}>
+                    <span>难度 {'★'.repeat(filtered[0].difficulty) + '☆'.repeat(3 - filtered[0].difficulty)}</span>
+                    <span>·</span>
+                    <span>{filtered[0].time} 分钟</span>
+                    <span>·</span>
+                    <span>调味机自动配酱</span>
                   </div>
                 </div>
               </button>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* grid */}
+          {gridItems.length === 0 ? (
+            <div style={{ padding: '48px 20px', textAlign: 'center', color: t.textSec, fontSize: 13 }}>
+              暂无「{cat}」菜谱
+            </div>
+          ) : (
+            <div
+              style={{
+                padding: '16px 20px 0',
+                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
+              }}
+            >
+              {gridItems.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => nav.push('detail', { recipeId: r.id })}
+                  style={{
+                    padding: 0, background: 'transparent', border: 'none',
+                    textAlign: 'left', fontFamily: t.font, color: t.text,
+                  }}
+                >
+                  <FoodThumb r={r} style={{ width: '100%', height: 160, borderRadius: 14 }} />
+                  <div
+                    style={{
+                      marginTop: 8,
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: -0.2 }}>{r.name}</div>
+                      <div style={{ fontSize: 11, color: t.textSec, marginTop: 2 }}>
+                        {r.category} · {r.time}m
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 10, color: t.textTer, fontWeight: 600 }}>
+                      {'★'.repeat(r.difficulty) + '☆'.repeat(3 - r.difficulty)}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <TabBar t={t} active="book" />
       </div>
@@ -177,6 +202,14 @@ export function RecipeDetailScreen({ t }) {
   // first recipe if nav wasn't given an id (e.g., dev menu jumped here).
   const id = nav.params?.recipeId || recipes[0]?.id;
   const r = byId[id] || recipes[0];
+
+  // Per-recipe favorite — persisted; toggled by the top-right heart.
+  const [favIds, setFavIds] = useLocalStorage('favorites', []);
+  const isFav = !!r && favIds.includes(r.id);
+  const toggleFav = () => {
+    if (!r) return;
+    setFavIds((xs) => (xs.includes(r.id) ? xs.filter((x) => x !== r.id) : [...xs, r.id]));
+  };
 
   // Fetch steps + ingredients for this recipe. Cached per-id in recipes.jsx
   // so toggling between detail pages doesn't refetch.
@@ -215,7 +248,26 @@ export function RecipeDetailScreen({ t }) {
             >
               <CircleButton t={t} icon="back" glass size={36} iconColor="#fff" iconStroke={2} onClick={nav.pop} />
               <div style={{ display: 'flex', gap: 8 }}>
-                <CircleButton t={t} icon="heart" glass size={36} iconColor="#fff" iconStroke={2} />
+                <button
+                  onClick={toggleFav}
+                  aria-label={isFav ? '取消收藏' : '收藏'}
+                  style={{
+                    width: 36, height: 36, borderRadius: 18,
+                    background: isFav ? '#fff' : 'rgba(0,0,0,0.35)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    border: 'none', padding: 0,
+                    transition: 'background 0.2s ease',
+                  }}
+                >
+                  <Icon
+                    name={isFav ? 'heart-f' : 'heart'}
+                    size={18}
+                    color={isFav ? t.accent : '#fff'}
+                    stroke={2}
+                  />
+                </button>
               </div>
             </div>
             <div
@@ -452,6 +504,24 @@ function StatCell({ t, label, value }) {
 export function SearchResultsScreen({ t }) {
   const nav = useNav();
   const { recipes } = useRecipes();
+  const [q, setQ] = useState('蒜苔');
+  const [tab, setTab] = useState('菜谱');
+
+  // Live filter — case-insensitive contains across name / english / category / tags.
+  const matches = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return [];
+    return recipes.filter((r) => {
+      const haystack = [
+        r.name, r.english, r.category, ...(r.tags || []),
+      ].join(' ').toLowerCase();
+      return haystack.includes(needle);
+    });
+  }, [recipes, q]);
+
+  const counts = { 菜谱: matches.length, 酱料: q ? 1 : 0, 食材: 0, 历史: 0 };
+  const tabs = ['菜谱', '酱料', '食材', '历史'];
+
   return (
     <PhoneFrame t={t} screen="18 搜索 Search">
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -464,25 +534,37 @@ export function SearchResultsScreen({ t }) {
             }}
           >
             <Icon name="search" size={16} color={t.textSec} stroke={1.8} />
-            <span style={{ fontSize: 14, color: t.text, flex: 1 }}>蒜苔</span>
-            <button
-              onClick={nav.pop}
-              aria-label="清空"
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="搜索菜名或调味..."
+              autoFocus
               style={{
-                width: 18, height: 18, borderRadius: 9,
-                background: t.textTer,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: 'none', cursor: 'pointer', padding: 0,
+                flex: 1, minWidth: 0,
+                background: 'transparent', border: 'none', outline: 'none',
+                fontSize: 14, color: t.text, fontFamily: t.font,
               }}
-            >
-              <Icon name="close" size={10} color={t.bg} stroke={2.4} />
-            </button>
+            />
+            {q && (
+              <button
+                onClick={() => setQ('')}
+                aria-label="清空"
+                style={{
+                  width: 18, height: 18, borderRadius: 9,
+                  background: t.textTer,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: 'none', padding: 0,
+                }}
+              >
+                <Icon name="close" size={10} color={t.bg} stroke={2.4} />
+              </button>
+            )}
           </div>
           <button
             onClick={nav.pop}
             style={{
               fontSize: 14, color: t.textSec, fontWeight: 500,
-              background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+              background: 'transparent', border: 'none', padding: 0,
               fontFamily: t.font,
             }}
           >
@@ -497,36 +579,43 @@ export function SearchResultsScreen({ t }) {
             borderBottom: `0.5px solid ${t.lineSoft}`,
           }}
         >
-          {['菜谱 3', '酱料 1', '食材', '历史'].map((tab, i) => (
-            <div
-              key={tab}
-              style={{
-                padding: '10px 0 12px',
-                borderBottom: i === 0 ? `2px solid ${t.text}` : 'none',
-                fontSize: 13, fontWeight: i === 0 ? 600 : 500,
-                color: i === 0 ? t.text : t.textSec,
-              }}
-            >
-              {tab}
-            </div>
-          ))}
+          {tabs.map((label) => {
+            const on = tab === label;
+            const count = counts[label];
+            return (
+              <button
+                key={label}
+                onClick={() => setTab(label)}
+                style={{
+                  padding: '10px 0 12px',
+                  borderTop: 'none', borderRight: 'none', borderLeft: 'none',
+                  borderBottom: on ? `2px solid ${t.text}` : '2px solid transparent',
+                  background: 'transparent',
+                  fontSize: 13, fontWeight: on ? 600 : 500,
+                  color: on ? t.text : t.textSec,
+                  transition: 'color 0.18s ease, border-color 0.18s ease',
+                }}
+              >
+                {label}{count > 0 ? ` ${count}` : ''}
+              </button>
+            );
+          })}
         </div>
 
         <div style={{ flex: 1, overflow: 'auto', padding: '8px 20px 32px' }}>
-          <div
-            style={{
-              fontSize: 11, color: t.textSec, letterSpacing: 0.4, fontWeight: 500,
-              padding: '12px 0 6px',
-            }}
-          >
-            找到 3 道相关菜谱
-          </div>
+          {/* result count */}
+          {tab === '菜谱' && q && (
+            <div
+              style={{
+                fontSize: 11, color: t.textSec, letterSpacing: 0.4, fontWeight: 500,
+                padding: '12px 0 6px',
+              }}
+            >
+              找到 {matches.length} 道相关菜谱
+            </div>
+          )}
 
-          {[
-            recipes.find((r) => r.id === 'suntai'),
-            recipes.find((r) => r.id === 'shengcai'),
-            recipes.find((r) => r.id === 'yuxiang'),
-          ].map((r, i) => (
+          {tab === '菜谱' && matches.map((r, i) => (
             <button
               key={r.id}
               onClick={() => nav.push('detail', { recipeId: r.id })}
@@ -536,7 +625,7 @@ export function SearchResultsScreen({ t }) {
                 display: 'flex', gap: 12, padding: '14px 0',
                 borderTop: 'none', borderRight: 'none', borderLeft: 'none',
                 borderBottom: `0.5px solid ${t.lineSoft}`,
-                background: 'transparent', cursor: 'pointer',
+                background: 'transparent',
                 textAlign: 'left', fontFamily: t.font, color: t.text,
                 animationDelay: `${i * 0.07}s`,
               }}
@@ -551,30 +640,14 @@ export function SearchResultsScreen({ t }) {
               >
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: -0.2 }}>
-                    {r.name.split('蒜苔').map((s, idx, arr) =>
-                      idx === arr.length - 1 ? (
-                        s
-                      ) : (
-                        <Fragment key={idx}>
-                          {s}
-                          <mark
-                            style={{
-                              background: t.accentSoft, color: t.accent,
-                              padding: '0 2px', borderRadius: 2,
-                            }}
-                          >
-                            蒜苔
-                          </mark>
-                        </Fragment>
-                      ),
-                    )}
+                    {highlightMatches(r.name, q, t)}
                   </div>
                   <div style={{ fontSize: 11, color: t.textSec, marginTop: 2 }}>
-                    {r.category} · {r.time} 分钟 · {r.tags.join(' · ')}
+                    {r.category} · {r.time} 分钟 · {(r.tags || []).join(' · ')}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 4 }}>
-                  {r.id === 'suntai' && (
+                  {q && (r.tags || []).some((tag) => tag.includes(q)) && (
                     <span
                       style={{
                         fontSize: 9, padding: '2px 6px',
@@ -582,7 +655,7 @@ export function SearchResultsScreen({ t }) {
                         fontWeight: 600, letterSpacing: 0.3,
                       }}
                     >
-                      含「蒜苔」
+                      含「{q}」
                     </span>
                   )}
                   <span
@@ -599,6 +672,24 @@ export function SearchResultsScreen({ t }) {
             </button>
           ))}
 
+          {tab === '菜谱' && q && matches.length === 0 && (
+            <div style={{ padding: '48px 0', textAlign: 'center', color: t.textSec, fontSize: 13 }}>
+              没找到「{q}」相关菜谱
+            </div>
+          )}
+
+          {tab === '酱料' && (
+            <div style={{ padding: '48px 0', textAlign: 'center', color: t.textSec, fontSize: 13 }}>
+              {q ? `酱料库里没有符合「${q}」的配方` : '请输入关键词'}
+            </div>
+          )}
+
+          {(tab === '食材' || tab === '历史') && (
+            <div style={{ padding: '48px 0', textAlign: 'center', color: t.textSec, fontSize: 13 }}>
+              {tab === '食材' ? '食材搜索即将上线' : '暂无搜索历史'}
+            </div>
+          )}
+
           {/* suggested searches */}
           <div style={{ marginTop: 20 }}>
             <div
@@ -611,18 +702,21 @@ export function SearchResultsScreen({ t }) {
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {['蒜蓉', '猪肉末', '青蒜', '快手菜', '下饭'].map((s) => (
-                <div
+                <button
                   key={s}
+                  onClick={() => setQ(s)}
+                  className="chip"
                   style={{
                     padding: '7px 14px', borderRadius: 100,
                     background: 'transparent', border: `0.5px solid ${t.line}`,
                     fontSize: 13, color: t.text, fontWeight: 500,
                     display: 'flex', alignItems: 'center', gap: 4,
+                    fontFamily: t.font,
                   }}
                 >
                   <Icon name="search" size={12} color={t.textSec} stroke={1.8} />
                   {s}
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -631,5 +725,30 @@ export function SearchResultsScreen({ t }) {
         <HomeIndicator t={t} />
       </div>
     </PhoneFrame>
+  );
+}
+
+// Wrap every occurrence of `q` in `text` with a pink-tinted <mark>.
+// Case-sensitive against the visible string; good enough for Chinese.
+function highlightMatches(text, q, t) {
+  if (!q) return text;
+  const parts = text.split(q);
+  if (parts.length === 1) return text;
+  return parts.map((p, i, arr) =>
+    i === arr.length - 1 ? (
+      <Fragment key={i}>{p}</Fragment>
+    ) : (
+      <Fragment key={i}>
+        {p}
+        <mark
+          style={{
+            background: t.accentSoft, color: t.accent,
+            padding: '0 2px', borderRadius: 2,
+          }}
+        >
+          {q}
+        </mark>
+      </Fragment>
+    ),
   );
 }

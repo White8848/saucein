@@ -1,10 +1,13 @@
 // Welcome / Device Pairing / Taste Profile — the first-run flow.
 
+import { useCallback, useRef } from 'react';
 import { PhoneFrame, HomeIndicator } from '../components/PhoneFrame.jsx';
 import { CircleButton } from '../components/CircleButton.jsx';
 import { Icon } from '../lib/Icon.jsx';
 import { useNav } from '../lib/nav.jsx';
+import { useLocalStorage } from '../lib/storage.js';
 import { glass, pinkBg } from '../lib/theme.js';
+import { useToast } from '../lib/toast.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // Welcome
@@ -297,16 +300,22 @@ export function PairingScreen({ t }) {
 // ─────────────────────────────────────────────────────────────
 export function TasteProfileScreen({ t }) {
   const nav = useNav();
-  const tastes = [
-    { label: '咸', val: 0.55 },
-    { label: '甜', val: 0.70 },
-    { label: '酸', val: 0.40 },
-    { label: '辣', val: 0.25 },
-    { label: '麻', val: 0.15 },
-    { label: '鲜', val: 0.75 },
-  ];
-  const avoid = ['芫荽', '过辣', '过咸'];
-  const avoidAll = ['芫荽', '茴香', '过辣', '过咸', '过油', '蒜', '内脏'];
+  const toast = useToast();
+  const TASTE_AXES = ['咸', '甜', '酸', '辣', '麻', '鲜'];
+  const AVOID_ALL = ['芫荽', '茴香', '过辣', '过咸', '过油', '蒜', '内脏'];
+  const [profile, setProfile] = useLocalStorage('tasteProfile', {
+    咸: 0.55, 甜: 0.70, 酸: 0.40, 辣: 0.25, 麻: 0.15, 鲜: 0.75,
+    avoid: ['芫荽', '过辣', '过咸'],
+  });
+  const setAxis = (label, val) =>
+    setProfile((p) => ({ ...p, [label]: val }));
+  const toggleAvoid = (a) =>
+    setProfile((p) => ({
+      ...p,
+      avoid: p.avoid.includes(a) ? p.avoid.filter((x) => x !== a) : [...p.avoid, a],
+    }));
+  const labelFor = (v) =>
+    v < 0.3 ? '清淡' : v < 0.55 ? '适中' : v < 0.75 ? '偏重' : '重口';
 
   return (
     <PhoneFrame t={t} screen="03 口味偏好 Taste">
@@ -320,7 +329,7 @@ export function TasteProfileScreen({ t }) {
             onClick={() => nav.jump('home')}
             style={{
               fontSize: 13, color: t.textSec, fontWeight: 500,
-              background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+              background: 'transparent', border: 'none', padding: 0,
               fontFamily: t.font,
             }}
           >
@@ -338,61 +347,42 @@ export function TasteProfileScreen({ t }) {
 
           {/* sliders */}
           <div style={{ marginTop: 24 }}>
-            {tastes.map((p) => (
-              <div key={p.label} style={{ padding: '14px 0', borderBottom: `0.5px solid ${t.lineSoft}` }}>
-                <div
-                  style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-                    marginBottom: 10,
-                  }}
-                >
-                  <span style={{ fontSize: 15, fontWeight: 500 }}>{p.label}</span>
-                  <span style={{ fontSize: 12, color: t.textSec, fontWeight: 500 }}>
-                    {p.val < 0.3 ? '清淡' : p.val < 0.55 ? '适中' : p.val < 0.75 ? '偏重' : '重口'}
-                  </span>
-                </div>
-                <div style={{ position: 'relative', height: 6, ...glass("soft"), borderRadius: 3 }}>
-                  <div
-                    style={{
-                      position: 'absolute', top: 0, left: 0, bottom: 0,
-                      width: `${p.val * 100}%`, ...pinkBg, borderRadius: 3,
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: 'absolute', top: '50%', left: `${p.val * 100}%`,
-                      transform: 'translate(-50%, -50%)',
-                      width: 20, height: 20, borderRadius: 10,
-                      background: '#fff',
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.15), 0 0 0 0.5px rgba(0,0,0,0.08)',
-                    }}
-                  />
-                </div>
-              </div>
+            {TASTE_AXES.map((axis) => (
+              <TasteSlider
+                key={axis}
+                t={t}
+                label={axis}
+                value={profile[axis]}
+                onChange={(v) => setAxis(axis, v)}
+                labelText={labelFor(profile[axis])}
+              />
             ))}
           </div>
 
-          {/* avoidance chips */}
+          {/* avoidance chips — multi-select; Set-backed */}
           <div style={{ marginTop: 28 }}>
             <div style={{ fontSize: 13, color: t.textSec, fontWeight: 500, letterSpacing: 0.3, marginBottom: 12 }}>
               避开以下口味或食材
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {avoidAll.map((a) => {
-                const on = avoid.includes(a);
+              {AVOID_ALL.map((a) => {
+                const on = profile.avoid.includes(a);
                 return (
-                  <div
+                  <button
                     key={a}
+                    onClick={() => toggleAvoid(a)}
+                    className="chip"
                     style={{
                       padding: '8px 14px', borderRadius: 100,
                       background: on ? t.text : 'transparent',
                       color: on ? t.bg : t.text,
                       border: on ? 'none' : `0.5px solid ${t.line}`,
                       fontSize: 13, fontWeight: 500,
+                      fontFamily: t.font,
                     }}
                   >
                     {a}
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -411,12 +401,11 @@ export function TasteProfileScreen({ t }) {
           }}
         >
           <button
-            onClick={() => nav.jump('home')}
+            onClick={() => { toast('口味偏好已保存', { tone: 'accent' }); nav.jump('home'); }}
             style={{
               width: '100%', height: 54, borderRadius: 14, border: 'none',
               ...pinkBg, color: t.accentText,
               fontSize: 16, fontWeight: 600, fontFamily: t.font,
-              cursor: 'pointer',
             }}
           >
             完成设置
@@ -426,5 +415,85 @@ export function TasteProfileScreen({ t }) {
         <HomeIndicator t={t} />
       </div>
     </PhoneFrame>
+  );
+}
+
+// Drag-to-set 0–1 slider — pointer events, capture on down so a fast
+// drag off the track keeps following the finger. Same trick as the
+// SauceRatio sliders, but in 0–1 space instead of grams.
+function TasteSlider({ t, label, value, onChange, labelText }) {
+  const trackRef = useRef(null);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  const updateFromX = useCallback((clientX) => {
+    const el = trackRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+    // Quantize to 2 decimals so storage stays compact and the label
+    // transitions don't jitter on tiny moves.
+    onChangeRef.current(Math.round(ratio * 100) / 100);
+  }, []);
+  const onPointerDown = useCallback((e) => {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    updateFromX(e.clientX);
+  }, [updateFromX]);
+  const onPointerMove = useCallback((e) => {
+    if (e.buttons !== 1 && e.pressure === 0) return;
+    updateFromX(e.clientX);
+  }, [updateFromX]);
+
+  return (
+    <div style={{ padding: '14px 0', borderBottom: `0.5px solid ${t.lineSoft}` }}>
+      <div
+        style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+          marginBottom: 10,
+        }}
+      >
+        <span style={{ fontSize: 15, fontWeight: 500 }}>{label}</span>
+        <span
+          style={{
+            fontSize: 12, color: t.textSec, fontWeight: 500,
+            transition: 'color 0.18s ease',
+          }}
+        >
+          {labelText}
+        </span>
+      </div>
+      <div
+        ref={trackRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        style={{
+          position: 'relative', height: 22, padding: '8px 0',
+          touchAction: 'none', cursor: 'pointer',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute', top: 8, left: 0, right: 0,
+            height: 6, ...glass("soft"), borderRadius: 3,
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute', top: 8, left: 0,
+            height: 6, width: `${value * 100}%`, ...pinkBg, borderRadius: 3,
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute', top: 11, left: `${value * 100}%`,
+            transform: 'translate(-50%, -50%)',
+            width: 22, height: 22, borderRadius: 11,
+            background: '#fff',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.15), 0 0 0 0.5px rgba(0,0,0,0.08)',
+          }}
+        />
+      </div>
+    </div>
   );
 }

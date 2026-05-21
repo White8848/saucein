@@ -9,6 +9,7 @@ import { SEASONINGS } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
 import { useRecipes } from "../lib/recipes.jsx";
 import { glass, pinkBg } from '../lib/theme.js';
+import { useToast } from '../lib/toast.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // Home — normal
@@ -92,13 +93,12 @@ export function HomeScreen({ t }) {
               {/* CTA row */}
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
-                  onClick={() => nav.push('recommend')}
+                  onClick={() => nav.setTab('ai')}
                   style={{
                     flex: 1, height: 44, borderRadius: 12, border: 'none',
                     ...pinkBg, color: t.accentText,
                     fontSize: 14, fontWeight: 600, fontFamily: t.font,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    cursor: 'pointer',
                   }}
                 >
                   <Icon name="sparkle" size={16} color={t.accentText} stroke={2} />
@@ -124,10 +124,10 @@ export function HomeScreen({ t }) {
           {/* quick actions */}
           <div style={{ padding: '20px 20px 0' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <QuickCard t={t} title="开始烹饪"   sub="选择菜谱并由 AI 引导" icon="flame" tone="accent" onClick={() => nav.push('recommend')} />
-              <QuickCard t={t} title="一键调酱"   sub="6 种常用酱料模板"     icon="drop"                onClick={() => nav.setTab('sauce')}    />
-              <QuickCard t={t} title="食谱库"     sub="248 道收录"           icon="book"                onClick={() => nav.setTab('book')}     />
-              <QuickCard t={t} title="自定义配方" sub="保存我的酱汁"         icon="tune"                onClick={() => nav.push('ratio')}      />
+              <QuickCard t={t} title="开始烹饪"   sub="选择菜谱并由 AI 引导" icon="flame" tone="accent" onClick={() => nav.setTab('book')}  />
+              <QuickCard t={t} title="一键调酱"   sub="6 种常用酱料模板"     icon="drop"                onClick={() => nav.setTab('sauce')} />
+              <QuickCard t={t} title="食谱库"     sub="248 道收录"           icon="book"                onClick={() => nav.setTab('book')}  />
+              <QuickCard t={t} title="自定义配方" sub="保存我的酱汁"         icon="tune"                onClick={() => nav.push('ratio')}   />
             </div>
           </div>
 
@@ -431,6 +431,7 @@ export function HomeLowStockScreen({ t }) {
 export function HomeOfflineScreen({ t }) {
   const nav = useNav();
   const { recipes } = useRecipes();
+  const toast = useToast();
   return (
     <PhoneFrame t={t} screen="23 首页 · 设备离线">
       <div style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -504,13 +505,12 @@ export function HomeOfflineScreen({ t }) {
 
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
-                  onClick={() => nav.jump('home')}
+                  onClick={() => { toast('正在重连⋯'); nav.push('pairing'); }}
                   style={{
                     flex: 1, height: 44, borderRadius: 12, border: 'none',
                     background: t.text, color: t.bg,
                     fontSize: 14, fontWeight: 600, fontFamily: t.font,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    cursor: 'pointer',
                   }}
                 >
                   <Icon name="wave" size={16} color={t.bg} stroke={2} />
@@ -522,7 +522,6 @@ export function HomeOfflineScreen({ t }) {
                     height: 44, padding: '0 16px', borderRadius: 12,
                     border: `0.5px solid ${t.line}`, background: 'transparent',
                     color: t.text, fontSize: 14, fontWeight: 500, fontFamily: t.font,
-                    cursor: 'pointer',
                   }}
                 >
                   排查
