@@ -5,7 +5,7 @@ import { PhoneFrame, HomeIndicator } from '../components/PhoneFrame.jsx';
 import { CircleButton } from '../components/CircleButton.jsx';
 import { TabBar } from '../components/TabBar.jsx';
 import { Icon } from '../lib/Icon.jsx';
-import { SEASONINGS, YUXIANG_RATIO } from '../lib/data.js';
+import { SEASONINGS, SAUCES, TASTE_OF, getSauceById } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
 import { useLocalStorage } from '../lib/storage.js';
 import { glass, pinkBg } from '../lib/theme.js';
@@ -16,13 +16,7 @@ import { useToast } from '../lib/toast.jsx';
 // ─────────────────────────────────────────────────────────────
 export function SauceLibraryScreen({ t }) {
   const nav = useNav();
-  const allSauces = [
-    { name: '鱼香汁',     sub: '咸甜微辣 · 经典川味', colors: ['#5B3B1F', '#7B3F2C', '#F2EAD8', '#C9A86A', '#C53A1A'], used: 12, last: '2 天前', mine: false },
-    { name: '泰式甜辣',   sub: '酸甜带椒香',          colors: ['#F2EAD8', '#C9A86A', '#C53A1A', '#7B3F2C'],             used: 3,  last: '上周',   mine: true  },
-    { name: '葱姜蘸料',   sub: '清淡蘸白切',          colors: ['#B07A2C', '#FFFFFF', '#3A2412'],                         used: 8,  last: '昨天',   mine: false },
-    { name: '麻辣红油',   sub: '香辣开胃',            colors: ['#C53A1A', '#7B3F2C', '#2C1810', '#B07A2C'],             used: 5,  last: '4 天前', mine: false },
-    { name: '老醋汁',     sub: '酸鲜微甜',            colors: ['#7B3F2C', '#5B3B1F', '#F2EAD8'],                         used: 2,  last: '上月',   mine: true  },
-  ];
+  const allSauces = SAUCES;
   const [tab, setTab] = useState('all');
   const tabs = [
     { key: 'all',    label: '全部',     filter: () => true       },
@@ -48,7 +42,7 @@ export function SauceLibraryScreen({ t }) {
                 <div style={{ fontSize: t.h1, fontWeight: t.titleWeight, letterSpacing: -0.6 }}>酱料库</div>
               </div>
               <button
-                onClick={() => nav.push('ratio')}
+                onClick={() => nav.push('ratio', { sauceId: 'yuxiang' })}
                 aria-label="新建"
                 style={{
                   width: 40, height: 40, borderRadius: 20, ...pinkBg,
@@ -128,7 +122,7 @@ export function SauceLibraryScreen({ t }) {
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button
-                      onClick={() => nav.push('ratio')}
+                      onClick={() => nav.push('ratio', { sauceId: featured.id })}
                       style={{
                         padding: '6px 12px', borderRadius: 100,
                         background: 'rgba(255,255,255,0.15)',
@@ -140,7 +134,7 @@ export function SauceLibraryScreen({ t }) {
                       调整
                     </button>
                     <button
-                      onClick={() => nav.push('dispense')}
+                      onClick={() => nav.push('dispense', { sauceId: featured.id })}
                       style={{
                         padding: '6px 12px', borderRadius: 100,
                         ...pinkBg, color: t.accentText,
@@ -175,7 +169,7 @@ export function SauceLibraryScreen({ t }) {
                 {listItems.map((s, i, arr) => (
                   <button
                     key={s.name}
-                    onClick={() => nav.push('ratio')}
+                    onClick={() => nav.push('ratio', { sauceId: s.id })}
                     style={{
                       width: '100%',
                       display: 'flex', alignItems: 'center', gap: 12,
@@ -258,7 +252,7 @@ export function SauceLibraryEmptyScreen({ t }) {
                 <div style={{ fontSize: t.h1, fontWeight: t.titleWeight, letterSpacing: -0.6 }}>酱料库</div>
               </div>
               <button
-                onClick={() => nav.push('ratio')}
+                onClick={() => nav.push('ratio', { sauceId: 'yuxiang' })}
                 aria-label="新建"
                 style={{
                   width: 40, height: 40, borderRadius: 20, ...pinkBg,
@@ -335,7 +329,7 @@ export function SauceLibraryEmptyScreen({ t }) {
               让 AI 推荐配方
             </button>
             <button
-              onClick={() => nav.push('ratio')}
+              onClick={() => nav.push('ratio', { sauceId: 'yuxiang' })}
               style={{
                 marginTop: 14, fontSize: 12, color: t.textSec, fontWeight: 500,
                 background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
@@ -357,24 +351,16 @@ export function SauceLibraryEmptyScreen({ t }) {
 // ─────────────────────────────────────────────────────────────
 export function SauceRatioScreen({ t }) {
   const nav = useNav();
+  const sauce = getSauceById(nav.params.sauceId);
   const [grams, setGrams] = useState(() =>
-    Object.fromEntries(YUXIANG_RATIO.map((s) => [s.key, s.grams])),
+    Object.fromEntries(sauce.ratio.map((s) => [s.key, s.grams])),
   );
   const total = Object.values(grams).reduce((a, b) => a + b, 0);
 
-  // taste model — each seasoning contributes to flavor axes
-  const tasteModel = {
-    soy_light: { 咸: 0.85, 鲜: 0.45 },
-    vinegar:   { 酸: 0.95, 鲜: 0.10 },
-    sugar:     { 甜: 0.95 },
-    cooking_w: { 鲜: 0.35 },
-    chili_oil: { 辣: 0.95 },
-    starch_w:  {},
-  };
   const tastes = ['咸', '甜', '酸', '辣', '鲜'].map((axis) => {
     let v = 0;
-    YUXIANG_RATIO.forEach((s) => {
-      const w = tasteModel[s.key]?.[axis] || 0;
+    sauce.ratio.forEach((s) => {
+      const w = TASTE_OF[s.key]?.[axis] || 0;
       v += w * (grams[s.key] / s.max);
     });
     return { label: axis, val: Math.min(1, v) };
@@ -409,7 +395,7 @@ export function SauceRatioScreen({ t }) {
         <div style={{ flex: 1, overflow: 'auto', padding: '12px 20px 130px' }}>
           <div style={{ marginBottom: 8 }}>
             <div style={{ fontSize: 11, color: t.textSec, letterSpacing: 0.4, fontWeight: 500 }}>
-              正在调整 · 我的鱼香汁
+              正在调整 · 我的{sauce.name}
             </div>
             <div
               style={{
@@ -417,7 +403,7 @@ export function SauceRatioScreen({ t }) {
                 letterSpacing: -0.5, lineHeight: 1.1, marginTop: 4,
               }}
             >
-              鱼香汁 · 配比
+              {sauce.name} · 配比
             </div>
           </div>
 
@@ -482,7 +468,7 @@ export function SauceRatioScreen({ t }) {
             >
               调料用量 · 拖动调整
             </div>
-            {YUXIANG_RATIO.map((s) => {
+            {sauce.ratio.map((s) => {
               const seasoning = SEASONINGS.find((x) => x.key === s.key);
               return (
                 <SliderRow
@@ -511,7 +497,7 @@ export function SauceRatioScreen({ t }) {
           }}
         >
           <button
-            onClick={() => nav.push('dispense')}
+            onClick={() => nav.push('dispense', { sauceId: sauce.id })}
             style={{
               height: 54, padding: '0 18px', borderRadius: 14,
               border: `0.5px solid ${t.line}`, background: 'transparent',
@@ -522,7 +508,7 @@ export function SauceRatioScreen({ t }) {
             试调 5 g
           </button>
           <button
-            onClick={() => nav.push('dispense')}
+            onClick={() => nav.push('dispense', { sauceId: sauce.id })}
             style={{
               flex: 1, height: 54, borderRadius: 14, border: 'none',
               ...pinkBg, color: t.accentText,
@@ -641,6 +627,16 @@ function SliderRow({ t, s, color, value, onChange }) {
 // ─────────────────────────────────────────────────────────────
 export function DispensingScreen({ t }) {
   const nav = useNav();
+  const sauce = getSauceById(nav.params.sauceId);
+  // Mock pour progress — pretend we've just finished the second ingredient
+  // and are halfway through the third. Stays consistent across sauces with
+  // varying step counts.
+  const totalSteps = sauce.ratio.length;
+  const currentIdx = Math.min(2, totalSteps - 1);
+  const doneCount = currentIdx;
+  const progressPct = Math.round(((doneCount + 0.5) / totalSteps) * 100);
+  const currentStep = sauce.ratio[currentIdx];
+  const currentSeasoning = SEASONINGS.find((x) => x.key === currentStep.key);
   return (
     <PhoneFrame t={t} screen="13 出料中 Dispensing">
       <div style={{ height: '100%', background: t.bg, display: 'flex', flexDirection: 'column' }}>
@@ -661,7 +657,7 @@ export function DispensingScreen({ t }) {
         <div style={{ flex: 1, padding: '8px 20px 0', display: 'flex', flexDirection: 'column' }}>
           <div style={{ marginTop: 8 }}>
             <div style={{ fontSize: 12, color: t.textSec, letterSpacing: 0.4, fontWeight: 500 }}>
-              正在为「鱼香肉丝」调配
+              正在为「{sauce.dish}」调配
             </div>
             <div
               style={{
@@ -669,7 +665,7 @@ export function DispensingScreen({ t }) {
                 letterSpacing: -0.6, lineHeight: 1.1, marginTop: 4,
               }}
             >
-              鱼香汁
+              {sauce.name}
             </div>
           </div>
 
@@ -711,7 +707,7 @@ export function DispensingScreen({ t }) {
                     letterSpacing: -1, lineHeight: 1,
                   }}
                 >
-                  50
+                  {progressPct}
                   <span style={{ fontSize: 16, color: t.textSec, fontWeight: 600 }}>%</span>
                 </div>
                 <div
@@ -720,7 +716,7 @@ export function DispensingScreen({ t }) {
                     letterSpacing: 0.4, fontWeight: 500,
                   }}
                 >
-                  3 / 6 调料
+                  {currentIdx + 1} / {totalSteps} 调料
                 </div>
               </div>
             </div>
@@ -737,18 +733,24 @@ export function DispensingScreen({ t }) {
               <div
                 style={{
                   width: 36, height: 36, borderRadius: 18,
-                  background: SEASONINGS.find((s) => s.key === 'soy_light').color,
+                  background: currentSeasoning?.color,
+                  border: currentSeasoning?.color === '#FFFFFF' ? `1px solid ${t.line}` : 'none',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
               >
-                <Icon name="drop" size={18} color="#fff" stroke={2} />
+                <Icon
+                  name="drop"
+                  size={18}
+                  color={currentSeasoning?.color === '#FFFFFF' || currentSeasoning?.color === '#F2EAD8' ? t.text : '#fff'}
+                  stroke={2}
+                />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 11, color: t.textSec, letterSpacing: 0.3, fontWeight: 500 }}>
                   正在注入
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: -0.2, marginTop: 1 }}>
-                  生抽 · 15 g
+                  {currentStep.label} · {currentStep.grams} g
                 </div>
               </div>
               <div className="anim-wave-pulse">
@@ -759,10 +761,10 @@ export function DispensingScreen({ t }) {
 
           {/* steps list */}
           <div style={{ marginTop: 16 }}>
-            {YUXIANG_RATIO.map((s, i) => {
+            {sauce.ratio.map((s, i) => {
               const seasoning = SEASONINGS.find((x) => x.key === s.key);
-              const done = i < 2;
-              const current = i === 2;
+              const done = i < currentIdx;
+              const current = i === currentIdx;
               return (
                 <div
                   key={s.key}
@@ -770,7 +772,7 @@ export function DispensingScreen({ t }) {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10,
                     padding: '10px 0',
-                    opacity: i > 2 ? 0.5 : 1,
+                    opacity: i > currentIdx ? 0.5 : 1,
                     animationDelay: `${i * 0.08}s`,
                   }}
                 >
@@ -842,9 +844,11 @@ export function DispensingScreen({ t }) {
 export function SaveSauceScreen({ t }) {
   const nav = useNav();
   const toast = useToast();
+  const sauce = getSauceById(nav.params.sauceId);
+  const totalGrams = sauce.ratio.reduce((a, b) => a + b.grams, 0);
   const TAG_ALL = ['咸甜', '微辣', '下饭', '酸甜', '麻辣', '清淡', '蘸料'];
   const [, setSavedSauces] = useLocalStorage('savedSauces', []);
-  const [name, setName] = useState('老陈版鱼香汁');
+  const [name, setName] = useState(`老陈版${sauce.name}`);
   const [tags, setTags] = useState(new Set(['咸甜', '微辣', '下饭']));
   const [focused, setFocused] = useState(false);
   const toggleTag = (tag) =>
@@ -857,7 +861,7 @@ export function SaveSauceScreen({ t }) {
     const safeName = (name || '').trim() || '我的酱料';
     setSavedSauces((xs) => [
       ...xs,
-      { name: safeName, tags: Array.from(tags), ratio: YUXIANG_RATIO, savedAt: Date.now() },
+      { name: safeName, tags: Array.from(tags), ratio: sauce.ratio, savedAt: Date.now() },
     ]);
     nav.closeModal();
     nav.jump('library');
@@ -874,7 +878,7 @@ export function SaveSauceScreen({ t }) {
           opacity: 0.35,
         }}
       >
-        <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: -0.5 }}>鱼香汁 · 配比</div>
+        <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: -0.5 }}>{sauce.name} · 配比</div>
         <div style={{ marginTop: 16, height: 60, ...glass("card"), borderRadius: 12 }} />
         <div style={{ marginTop: 16, height: 200, ...glass("card"), borderRadius: 12 }} />
       </div>
@@ -926,7 +930,7 @@ export function SaveSauceScreen({ t }) {
           }}
         >
           <div style={{ display: 'flex', height: 8, borderRadius: 100, overflow: 'hidden' }}>
-            {YUXIANG_RATIO.map((s) => {
+            {sauce.ratio.map((s) => {
               const seasoning = SEASONINGS.find((x) => x.key === s.key);
               return <div key={s.key} style={{ flex: s.grams, background: seasoning?.color }} />;
             })}
@@ -937,8 +941,8 @@ export function SaveSauceScreen({ t }) {
               marginTop: 10, fontSize: 10, color: t.textSec,
             }}
           >
-            <span>总量 71 g</span>
-            <span>6 种调料</span>
+            <span>总量 {totalGrams} g</span>
+            <span>{sauce.ratio.length} 种调料</span>
             <span>{Array.from(tags).slice(0, 2).join(' · ') || '自定义'}</span>
           </div>
         </div>
