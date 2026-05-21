@@ -10,7 +10,7 @@ import { useNav } from '../lib/nav.jsx';
 import { useRecipes } from "../lib/recipes.jsx";
 import { useLocalStorage } from '../lib/storage.js';
 import { glass, pinkBg } from '../lib/theme.js';
-import { chat } from '../lib/ai.js';
+import { chat, MAX_TURNS, LimitReachedError } from '../lib/ai.js';
 import { useToast } from '../lib/toast.jsx';
 
 // ─────────────────────────────────────────────────────────────
@@ -26,11 +26,18 @@ const SUGGESTIONS = ['今晚做什么下饭菜?', '半小时内能搞定的快�
 
 export function AiChatScreen({ t }) {
   const nav = useNav();
+  const { byId } = useRecipes();
   const [messages, setMessages] = useState([WELCOME]);
   const [text, setText] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(null);
+  const [limitReached, setLimitReached] = useState(false);
   const scrollRef = useRef(null);
+
+  // User-message count is the canonical "turn" counter — assistant
+  // replies and the welcome bubble don't count toward the cap.
+  const turnsUsed = messages.filter((m) => m.role === 'user').length;
+  const atLimit = limitReached || turnsUsed >= MAX_TURNS;
 
   // Keep the latest message in view when the list grows.
   useEffect(() => {
@@ -38,19 +45,43 @@ export function AiChatScreen({ t }) {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length, pending]);
 
+  function newConversation() {
+    setMessages([WELCOME]);
+    setText('');
+    setError(null);
+    setLimitReached(false);
+  }
+
   async function send(content) {
     const trimmed = content.trim();
-    if (!trimmed || pending) return;
-    const next = [...messages, { role: 'user', content: trimmed }];
-    setMessages(next);
+    if (!trimmed || pending || atLimit) return;
+    // Strip ui-only fields from the history sent upstream — the model
+    // only needs { role, content }.
+    const history = messages
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
+      .map((m) => ({ role: m.role, content: m.content }));
+    const sendable = [...history, { role: 'user', content: trimmed }];
+    setMessages((cur) => [...cur, { role: 'user', content: trimmed }]);
     setText('');
     setPending(true);
     setError(null);
     try {
-      const reply = await chat(next);
-      setMessages((cur) => [...cur, { role: 'assistant', content: reply }]);
+      const { intro, recipes, reply } = await chat(sendable);
+      if (recipes.length > 0) {
+        setMessages((cur) => [
+          ...cur,
+          { role: 'assistant', content: intro || '给你这几个建议:', recipes },
+        ]);
+      } else {
+        setMessages((cur) => [...cur, { role: 'assistant', content: reply || '⋯' }]);
+      }
     } catch (e) {
-      setError(e.message || 'AI 暂时不在状态,稍后再试');
+      if (e instanceof LimitReachedError) {
+        setLimitReached(true);
+        setError(e.message);
+      } else {
+        setError(e.message || 'AI 暂时不在状态,稍后再试');
+      }
     } finally {
       setPending(false);
     }
@@ -60,6 +91,8 @@ export function AiChatScreen({ t }) {
     ev?.preventDefault();
     send(text);
   }
+
+  const showSuggestions = messages.length <= 1 && !pending && !atLimit;
 
   return (
     <PhoneFrame t={t} screen="05 AI 对话 Chat">
@@ -78,19 +111,34 @@ export function AiChatScreen({ t }) {
               <div
                 style={{
                   width: 6, height: 6, borderRadius: 3,
-                  background: pending ? t.accent : t.success,
+                  background: pending ? t.accent : atLimit ? t.textTer : t.success,
                   transition: 'background 0.2s',
                 }}
               />
               <div style={{ fontSize: 11, color: t.textSec, letterSpacing: 0.4, fontWeight: 500 }}>
-                {pending ? 'AI 大厨 · 思考中⋯' : 'AI 大厨 · 在线'}
+                {pending ? 'AI 大厨 · 思考中⋯' : `陈师傅 · ${turnsUsed} / ${MAX_TURNS} 来回`}
               </div>
             </div>
             <div style={{ fontSize: 16, fontWeight: t.titleWeight, letterSpacing: -0.2, marginTop: 1 }}>
               陈师傅
             </div>
           </div>
-          <CircleButton t={t} icon="tune" onClick={() => nav.push('settings')} />
+          {/* Right action: new chat reset (replaces the old tune icon). */}
+          <button
+            onClick={newConversation}
+            aria-label="新对话"
+            title="新对话"
+            disabled={messages.length <= 1 && !atLimit}
+            style={{
+              width: 32, height: 32, borderRadius: 16,
+              ...glass('soft'),
+              border: 'none', cursor: 'pointer', padding: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              opacity: messages.length <= 1 && !atLimit ? 0.45 : 1,
+            }}
+          >
+            <Icon name="plus" size={16} color={t.text} stroke={2} />
+          </button>
         </div>
 
         {/* messages */}
@@ -103,8 +151,28 @@ export function AiChatScreen({ t }) {
           }}
         >
           {messages.map((m, i) => (
-            <div key={i} className="anim-bubble-in">
-              <ChatBubble t={t} role={m.role} text={m.content} />
+            <div key={i} className="anim-bubble-in" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {m.content && (
+                <div>
+                  <ChatBubble t={t} role={m.role} text={m.content} />
+                </div>
+              )}
+              {m.recipes && m.recipes.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignSelf: 'flex-start' }}>
+                  {m.recipes.map((id) => {
+                    const r = byId[id];
+                    if (!r) return null;
+                    return (
+                      <RecipeChatCard
+                        key={id}
+                        t={t}
+                        r={r}
+                        onClick={() => nav.push('detail', { recipeId: id })}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ))}
           {pending && (
@@ -119,8 +187,8 @@ export function AiChatScreen({ t }) {
           )}
         </div>
 
-        {/* suggestion chips — only show on a clean conversation to nudge first input */}
-        {messages.length <= 1 && !pending && (
+        {/* suggestion chips — only show on a clean conversation */}
+        {showSuggestions && (
           <div style={{ padding: '4px 16px 0', display: 'flex', gap: 6, overflowX: 'auto' }}>
             {SUGGESTIONS.map((c) => (
               <button
@@ -140,47 +208,73 @@ export function AiChatScreen({ t }) {
           </div>
         )}
 
-        {/* input — controlled, Enter submits */}
-        <form
-          onSubmit={onSubmit}
-          style={{ padding: '12px 16px 32px', display: 'flex', alignItems: 'center', gap: 8 }}
-        >
-          <div
-            style={{
-              flex: 1, height: 48, borderRadius: 24, ...glass('soft'),
-              display: 'flex', alignItems: 'center', padding: '0 16px',
-            }}
-          >
-            <input
-              type="text"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="跟陈师傅说..."
-              disabled={pending}
+        {/* input — locked when at limit; replaced by a "new chat" CTA */}
+        {atLimit ? (
+          <div style={{ padding: '12px 16px 32px' }}>
+            <div
               style={{
-                flex: 1, fontSize: 14, color: t.text,
-                background: 'transparent', border: 'none', outline: 'none',
-                fontFamily: t.font,
+                fontSize: 12, color: t.textSec, textAlign: 'center',
+                padding: '4px 0 10px',
               }}
-            />
-            <Icon name="mic" size={20} color={t.textSec} stroke={1.6} />
+            >
+              本次对话已达 {MAX_TURNS} 来回上限
+            </div>
+            <button
+              onClick={newConversation}
+              style={{
+                width: '100%', height: 48, borderRadius: 14,
+                ...pinkBg, color: t.accentText,
+                fontSize: 15, fontWeight: 600, fontFamily: t.font,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                border: 'none', cursor: 'pointer',
+              }}
+            >
+              <Icon name="plus" size={18} color={t.accentText} stroke={2.4} />
+              开始新对话
+            </button>
           </div>
-          <button
-            type="submit"
-            disabled={!text.trim() || pending}
-            aria-label="发送"
-            style={{
-              width: 48, height: 48, borderRadius: 24, ...pinkBg,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              border: 'none', cursor: text.trim() && !pending ? 'pointer' : 'default',
-              opacity: text.trim() && !pending ? 1 : 0.55,
-              transition: 'opacity 0.15s',
-              padding: 0,
-            }}
+        ) : (
+          <form
+            onSubmit={onSubmit}
+            style={{ padding: '12px 16px 32px', display: 'flex', alignItems: 'center', gap: 8 }}
           >
-            <Icon name="send" size={20} color={t.accentText} stroke={1.8} />
-          </button>
-        </form>
+            <div
+              style={{
+                flex: 1, height: 48, borderRadius: 24, ...glass('soft'),
+                display: 'flex', alignItems: 'center', padding: '0 16px',
+              }}
+            >
+              <input
+                type="text"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="跟陈师傅说..."
+                disabled={pending}
+                style={{
+                  flex: 1, fontSize: 14, color: t.text,
+                  background: 'transparent', border: 'none', outline: 'none',
+                  fontFamily: t.font,
+                }}
+              />
+              <Icon name="mic" size={20} color={t.textSec} stroke={1.6} />
+            </div>
+            <button
+              type="submit"
+              disabled={!text.trim() || pending}
+              aria-label="发送"
+              style={{
+                width: 48, height: 48, borderRadius: 24, ...pinkBg,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: 'none', cursor: text.trim() && !pending ? 'pointer' : 'default',
+                opacity: text.trim() && !pending ? 1 : 0.55,
+                transition: 'opacity 0.15s',
+                padding: 0,
+              }}
+            >
+              <Icon name="send" size={20} color={t.accentText} stroke={1.8} />
+            </button>
+          </form>
+        )}
 
         <HomeIndicator t={t} />
       </div>
