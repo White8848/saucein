@@ -1,28 +1,34 @@
-// 极简白 — the single shipped palette.
-// Was THEMES.A in the prototype; the other two themes (暖米 / 克制黑) were
-// dropped after the user picked this one for the complete-app deliverable.
+// 粉系毛玻璃 — the new palette: pink-tone frosted glass.
+// Cards are semi-transparent white; the page background is a soft pink
+// (#f3e8ec) so the glass cards have something to blur against on margins
+// and at hero edges. Inside content areas, cards over white look like
+// barely-there outlined cards — intentional, the glass only "shows" over
+// colorful regions (food heroes, pink accents, dark profile cards).
 
 export const theme = {
-  name: '极简白',
-  desc: '近白底 · 黑字 · 暖红强调',
+  name: '粉系毛玻璃',
+  desc: '近白底 + 半透白卡 + 玫红强调',
   font: '"PingFang SC", "HarmonyOS Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
-  bg: '#FAFAF7',
-  card: '#FFFFFF',
-  soft: '#F2F1EC',
-  softer: '#F7F6F2',
-  text: '#1A1A1A',
-  textSec: '#6E6E6B',
-  textTer: '#A8A8A4',
-  line: '#EAEAE5',
-  lineSoft: 'rgba(0,0,0,0.05)',
-  accent: '#C7522A',
-  accentSoft: '#FAE7DC',
+  bg: '#FFFFFF',
+  card: 'rgba(255,255,255,0.55)',
+  soft: 'rgba(255,255,255,0.4)',
+  softer: 'rgba(255,255,255,0.35)',
+  text: '#1F1216',
+  textSec: '#7A5D67',
+  textTer: '#B7A4AB',
+  line: 'rgba(0,0,0,0.08)',
+  lineSoft: 'rgba(238,74,129,0.06)',
+  accent: '#EE4A81',
+  accentSoft: 'rgba(238,74,129,0.12)',
   accentText: '#FFFFFF',
-  chipBg: '#F2F1EC',
-  danger: '#C7522A',
-  success: '#5A7A3C',
-  tabbarBg: 'rgba(255,255,255,0.92)',
-  tabbarLine: 'rgba(0,0,0,0.06)',
+  accent2: '#2C68ED',
+  accent2Soft: 'rgba(44,104,237,0.10)',
+  chipBg: 'rgba(255,255,255,0.5)',
+  cardSolid: 'rgba(255,255,255,0.92)',
+  danger: '#EE4A81',
+  success: '#2C68ED',
+  tabbarBg: 'rgba(255,255,255,0.55)',
+  tabbarLine: 'rgba(255,255,255,0.7)',
   iconWeight: 1.5,
   titleWeight: 600,
   h1: 28,

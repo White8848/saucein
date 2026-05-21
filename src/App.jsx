@@ -133,7 +133,10 @@ function Shell() {
     <div
       style={{
         minHeight: '100dvh',
-        background: theme.bg,
+        // Background comes from body (`#f3e8ec` soft pink) — leaving Shell
+        // transparent so the pink shows around the centered phone column on
+        // desktop. PhoneFrame paints its own white interior over this.
+        background: 'transparent',
         fontFamily: theme.font,
         position: 'relative',
       }}
