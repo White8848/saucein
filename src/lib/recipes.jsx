@@ -1,15 +1,21 @@
 // Recipes data layer.
-// `RecipesProvider` fetches the catalog once on mount and exposes it
-// via `useRecipes()` to every screen. While loading, the provider holds
-// the children back behind a tiny splash so screens never crash on
-// `recipes[0]` access. Errors fall back to an empty list and surface a
-// console.error — guest UX should still feel "live", not blank.
+// `RecipesProvider` reads a cached catalog from localStorage on mount —
+// if anything is there, screens render instantly (no splash). It always
+// refetches from Supabase in the background and only re-renders when the
+// new payload differs from what's already on screen. Stale-while-
+// revalidate: the user never waits twice for the same data, but stays
+// in sync with whatever the DB says.
+// `fetchRecipeDetail` does the same per-recipe with steps + ingredients.
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, resolveMediaUrl } from './supabase.js';
+import { cacheKey, loadCache, saveCache } from './cache.js';
 import { theme } from './theme.js';
 
 const RecipesCtx = createContext({ recipes: [], byId: {}, loading: true, error: null });
+
+const RECIPES_KEY = cacheKey('recipes');
+const DETAIL_KEY = (id) => `${cacheKey('recipe-detail')}:${id}`;
 
 // Reshape DB rows into the shape screens already expect (`name`, `category`,
 // `tags`, `hue1`, `hue2`, `img`, `time`, `difficulty`, `english`). Bridges
@@ -32,12 +38,29 @@ function fromRow(row) {
   };
 }
 
+function buildById(recipes) {
+  return Object.fromEntries(recipes.map((r) => [r.id, r]));
+}
+
 export function RecipesProvider({ children }) {
-  const [state, setState] = useState({ recipes: [], byId: {}, loading: true, error: null });
+  // Seed from cache synchronously so the first paint can skip the splash.
+  // Validate shape because anyone can hand-edit localStorage.
+  const [state, setState] = useState(() => {
+    const cached = loadCache(RECIPES_KEY);
+    if (cached && Array.isArray(cached.recipes) && cached.recipes.length > 0) {
+      return {
+        recipes: cached.recipes,
+        byId: buildById(cached.recipes),
+        loading: false,
+        error: null,
+      };
+    }
+    return { recipes: [], byId: {}, loading: true, error: null };
+  });
 
   useEffect(() => {
     let cancelled = false;
-    async function load() {
+    async function revalidate() {
       const { data, error } = await supabase
         .from('recipes')
         .select('*')
@@ -45,18 +68,38 @@ export function RecipesProvider({ children }) {
       if (cancelled) return;
       if (error) {
         console.error('[recipes] fetch failed', error);
-        setState({ recipes: [], byId: {}, loading: false, error });
+        // If we already have a cached list on screen, leave it. Only fall
+        // through to the empty/error state when there's nothing to show.
+        setState((prev) =>
+          prev.recipes.length > 0
+            ? prev
+            : { recipes: [], byId: {}, loading: false, error },
+        );
         return;
       }
       const recipes = (data || []).map(fromRow);
-      const byId = Object.fromEntries(recipes.map((r) => [r.id, r]));
-      setState({ recipes, byId, loading: false, error: null });
+      const nextJson = JSON.stringify(recipes);
+      const cached = loadCache(RECIPES_KEY);
+      if (cached?.json === nextJson) return; // nothing changed
+      setState({ recipes, byId: buildById(recipes), loading: false, error: null });
+      saveCache(RECIPES_KEY, { recipes, json: nextJson });
     }
-    load();
+    revalidate();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // Warm the browser HTTP cache for every thumbnail as soon as the list is
+  // known. GH Pages gives us no Cache-Control knob, so the cheapest win is
+  // preloading: by the time the user taps a card, the image is already in
+  // the browser's HTTP cache and the detail screen renders instantly.
+  useEffect(() => {
+    if (typeof Image === 'undefined') return;
+    state.recipes.forEach((r) => {
+      if (r.img) new Image().src = r.img;
+    });
+  }, [state.recipes]);
 
   if (state.loading) return <RecipesSplash />;
 
@@ -68,10 +111,13 @@ export function useRecipes() {
 }
 
 // Fetch a single recipe's steps + ingredients on demand (used by detail
-// and history screens). Cached per-recipe within the session.
+// and history screens). Three-layer lookup: in-memory Map → localStorage
+// → network. localStorage hits return synchronously to the caller and
+// kick off a background refresh; reopening the screen later picks up
+// any new data the DB has.
 const _detailCache = new Map();
-export async function fetchRecipeDetail(id) {
-  if (_detailCache.has(id)) return _detailCache.get(id);
+
+async function refreshDetail(id) {
   const [{ data: steps }, { data: ingredients }] = await Promise.all([
     supabase
       .from('recipe_steps')
@@ -89,7 +135,23 @@ export async function fetchRecipeDetail(id) {
     ingredients: ingredients || [],
   };
   _detailCache.set(id, detail);
+  saveCache(DETAIL_KEY(id), detail);
   return detail;
+}
+
+export async function fetchRecipeDetail(id) {
+  if (_detailCache.has(id)) return _detailCache.get(id);
+
+  const persisted = loadCache(DETAIL_KEY(id));
+  if (persisted && Array.isArray(persisted.steps) && Array.isArray(persisted.ingredients)) {
+    _detailCache.set(id, persisted);
+    // Fire-and-forget — keep the cache fresh for the next visit. Errors
+    // here don't matter; the user is already seeing the cached version.
+    refreshDetail(id).catch(() => {});
+    return persisted;
+  }
+
+  return await refreshDetail(id);
 }
 
 // Splash shown while the initial recipe fetch is in flight. Same soft-pink
