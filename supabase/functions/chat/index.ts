@@ -1,35 +1,39 @@
 // Edge Function: chat
 //
-// Proxies AI chat requests from the SAUCEIN web app to Moonshot Kimi.
-// The Kimi API key lives ONLY as a Supabase Edge Function secret
-// (`KIMI_KEY`) — never in git, never in the client bundle. The
-// frontend invokes this with its anon JWT; Supabase verifies the JWT
-// before our handler runs, so random internet traffic can't burn the key.
+// AI chat with recipe-aware structured output. Pipeline:
+//   1. Fetch the recipe catalog from Postgres (always up-to-date).
+//   2. Inject the catalog into a system prompt that forces Kimi to either
+//      (a) recommend recipes by id, or (b) return free-text.
+//   3. Ask Kimi for JSON output (`response_format`).
+//   4. Validate the returned recipe ids against the live catalog, drop any
+//      hallucinated ones, return { intro, recipes, reply } to the client.
+//
+// Secrets: KIMI_KEY (set via Supabase Dashboard → Edge Functions → Secrets).
+// SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are auto-injected by the platform.
 
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
+import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const KIMI_KEY = Deno.env.get('KIMI_KEY');
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
 const KIMI_URL = 'https://api.moonshot.cn/v1/chat/completions';
 const MODEL = 'moonshot-v1-8k';
 
-// 陈师傅 persona — kept on the server so we can iterate without shipping
-// a new client bundle. Style notes match the scripted bubbles in the
-// original design: concise, gram-precise, sauce-config-aware.
-const SYSTEM_PROMPT = `你是 SAUCEIN 智能调味机里的 AI 大厨"陈师傅"。专业、精准、克数明确。
+// Guest users get N user→assistant turns per conversation before the
+// client must start a fresh one. Enforced server-side so a tampered
+// client can't burn through the Kimi quota.
+const MAX_TURNS = 5;
 
-你的能力:
-- 推荐家常下饭菜,可基于用户冰箱里现有的食材
-- 自动调配酱料配比,精确到克(如"生抽 12g + 香醋 8g")
-- 根据场景调整咸度/辣度(老人血压高、孩子怕辣、孕妇忌口等)
-- 给出 10-30 分钟能上桌的快手做法
-
-说话风格:
-- 简洁,不啰嗦。一两句能讲清的别拆三句
-- 酱料配比一定要具体克数,不写"少许"、"适量"
-- 推荐时考虑用户描述的限制(时间、人数、口味偏好)
-- 自然亲切但不过度热情,像真厨子在跟人聊天
-
-回复用中文。每次回复尽量保持在 60 字以内,除非用户问详细做法。`;
+type RecipeRow = {
+  id: string;
+  name: string;
+  english: string | null;
+  category: string | null;
+  time_minutes: number | null;
+  tags: string[] | null;
+};
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -45,6 +49,48 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+async function loadRecipes(): Promise<RecipeRow[]> {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return [];
+  const supa = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const { data, error } = await supa
+    .from('recipes')
+    .select('id, name, english, category, time_minutes, tags')
+    .order('sort_order', { ascending: true });
+  if (error) {
+    console.error('loadRecipes failed', error);
+    return [];
+  }
+  return (data as RecipeRow[]) ?? [];
+}
+
+function buildSystemPrompt(recipes: RecipeRow[]) {
+  const catalog = recipes
+    .map(
+      (r) =>
+        `- ${r.id}: ${r.name} (${r.category ?? '?'}, ${r.time_minutes ?? '?'}min, ${(r.tags || []).join('/')})`,
+    )
+    .join('\n');
+
+  return `你是 SAUCEIN 智能调味机里的 AI 大厨"陈师傅"。专业、精准、克数明确。
+
+可用菜谱 (下面这 ${recipes.length} 道是 DB 里的全部, 只能从这里挑):
+${catalog}
+
+【硬规则:必须返回 JSON,只能是以下两种格式之一】
+
+1) 用户问"做什么菜 / 推荐菜 / 想吃X / 有什么菜 / 来道菜" → 推荐 1-3 道菜:
+{"recipes": ["id1", "id2"], "intro": "≤ 30 字的短引导,例如:'今晚试试这两道, 都快手又下饭'"}
+
+2) 闲聊 / 问做法细节 / 改配方 / 调整咸辣度 / 食材替代 → 文字回答:
+{"reply": "≤ 80 字的简短回答, 酱料配比必须克数(生抽 8g, 不写少许)"}
+
+⚠️ 重要:
+- recipe id 必须是上面列表里的英文 id(如 yuxiang, suntai), 不能编新的
+- 用户描述任何菜系/口味/时间/食材 → 都先看能不能从已有菜谱里推荐
+- intro 短,不要把菜名/时长写进去(卡片会显示),只写一句引子
+- 不要在 JSON 外面写任何其他文字`;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: CORS_HEADERS });
@@ -54,14 +100,7 @@ Deno.serve(async (req: Request) => {
   }
 
   if (!KIMI_KEY) {
-    return jsonResponse(
-      {
-        error:
-          'KIMI_KEY not configured on the server. Set it in ' +
-          'Supabase Dashboard → Edge Functions → Secrets.',
-      },
-      500,
-    );
+    return jsonResponse({ error: 'KIMI_KEY not configured on the server.' }, 500);
   }
 
   let body: { messages?: Array<{ role: string; content: string }> };
@@ -71,8 +110,6 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: 'Invalid JSON body' }, 400);
   }
 
-  // Trim to last 12 turns to keep token usage in check; defensive filter
-  // so malformed entries from the client don't blow up the upstream call.
   const cleaned = (body.messages || [])
     .filter(
       (m) =>
@@ -88,6 +125,23 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: 'messages array is empty' }, 400);
   }
 
+  // Turn limit — count user messages in the incoming conversation. The
+  // welcome assistant message + any prior assistant replies don't count.
+  const userTurnCount = cleaned.filter((m) => m.role === 'user').length;
+  if (userTurnCount > MAX_TURNS) {
+    return jsonResponse(
+      {
+        error: `本次对话已达 ${MAX_TURNS} 个来回上限,请开始新对话`,
+        limit_reached: true,
+        max_turns: MAX_TURNS,
+      },
+      429,
+    );
+  }
+
+  const recipes = await loadRecipes();
+  const systemPrompt = buildSystemPrompt(recipes);
+
   try {
     const upstream = await fetch(KIMI_URL, {
       method: 'POST',
@@ -97,9 +151,10 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...cleaned],
-        temperature: 0.7,
-        max_tokens: 512,
+        messages: [{ role: 'system', content: systemPrompt }, ...cleaned],
+        temperature: 0.5,
+        max_tokens: 400,
+        response_format: { type: 'json_object' },
       }),
     });
 
@@ -107,17 +162,40 @@ Deno.serve(async (req: Request) => {
       const errText = await upstream.text();
       console.error('Kimi upstream error', upstream.status, errText);
       return jsonResponse(
-        {
-          error: `Upstream ${upstream.status}`,
-          detail: errText.slice(0, 200),
-        },
+        { error: `Upstream ${upstream.status}`, detail: errText.slice(0, 200) },
         upstream.status >= 500 ? 502 : upstream.status,
       );
     }
 
     const data = await upstream.json();
-    const reply = data?.choices?.[0]?.message?.content ?? '';
-    return jsonResponse({ reply, usage: data?.usage ?? null });
+    const raw = data?.choices?.[0]?.message?.content ?? '';
+
+    // Parse JSON. If parsing fails (model misbehaves), surface raw as a
+    // text reply rather than blowing up the UI.
+    let parsed: { recipes?: string[]; intro?: string; reply?: string } = {};
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = { reply: raw };
+    }
+
+    // Strip hallucinated ids — only keep ones that exist in the catalog.
+    const validIds = new Set(recipes.map((r) => r.id));
+    const filteredRecipes = Array.isArray(parsed.recipes)
+      ? parsed.recipes.filter((id) => typeof id === 'string' && validIds.has(id))
+      : [];
+
+    const intro = typeof parsed.intro === 'string' ? parsed.intro : '';
+    const reply = typeof parsed.reply === 'string' ? parsed.reply : '';
+
+    return jsonResponse({
+      intro,
+      recipes: filteredRecipes,
+      reply,
+      usage: data?.usage ?? null,
+      turns_used: userTurnCount,
+      max_turns: MAX_TURNS,
+    });
   } catch (e) {
     console.error('chat handler exception', e);
     return jsonResponse({ error: String((e as Error)?.message || e) }, 500);
