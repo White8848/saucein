@@ -4,8 +4,9 @@ import { PhoneFrame, HomeIndicator } from '../components/PhoneFrame.jsx';
 import { CircleButton } from '../components/CircleButton.jsx';
 import { FoodThumb } from '../components/FoodThumb.jsx';
 import { Icon } from '../lib/Icon.jsx';
-import { RECIPES, heroBg } from '../lib/data.js';
+import { heroBg } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
+import { useRecipes } from "../lib/recipes.jsx";
 import { glass, pinkBg } from '../lib/theme.js';
 
 // ─────────────────────────────────────────────────────────────
@@ -13,6 +14,7 @@ import { glass, pinkBg } from '../lib/theme.js';
 // ─────────────────────────────────────────────────────────────
 export function AiChatScreen({ t }) {
   const nav = useNav();
+  const { recipes } = useRecipes();
   const bubbles = [
     { role: 'a', text: '晚上好。我是你的私人大厨。今晚冰箱里有什么 ?' },
     { role: 'u', text: '一把蒜苔 + 一点猪肉末。' },
@@ -76,7 +78,7 @@ export function AiChatScreen({ t }) {
             </div>
           ))}
           <div className="anim-bubble-in" style={{ animationDelay: `${bubbles.length * 0.15}s` }}>
-            <RecipeChatCard t={t} r={RECIPES.find((r) => r.id === 'suntai')} onClick={() => nav.push('detail')} />
+            <RecipeChatCard t={t} r={recipes.find((r) => r.id === 'suntai')} onClick={() => nav.push('detail')} />
           </div>
           <div
             className="anim-bubble-in"
@@ -235,6 +237,7 @@ function RecipeChatCard({ t, r, onClick }) {
 // ─────────────────────────────────────────────────────────────
 export function AiRecommendScreen({ t }) {
   const nav = useNav();
+  const { recipes } = useRecipes();
   return (
     <PhoneFrame t={t} screen="06 AI 推荐 Recommend">
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -286,7 +289,7 @@ export function AiRecommendScreen({ t }) {
             style={{
               marginTop: 18, borderRadius: 20, overflow: 'hidden',
               position: 'relative', height: 240,
-              ...heroBg(RECIPES[0]),
+              ...heroBg(recipes[0]),
             }}
           >
             <div
@@ -307,7 +310,7 @@ export function AiRecommendScreen({ t }) {
             </div>
             <div style={{ position: 'absolute', bottom: 14, left: 14, right: 14, color: '#fff' }}>
               <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, lineHeight: 1.1 }}>
-                {RECIPES[0].name}
+                {recipes[0].name}
               </div>
               <div style={{ fontSize: 12, opacity: 0.85, marginTop: 6, lineHeight: 1.5 }}>
                 咸甜微辣, 18 分钟出锅。鱼香汁是经典下饭杀器, <br />
@@ -345,7 +348,7 @@ export function AiRecommendScreen({ t }) {
 
           {/* alt picks */}
           <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {[RECIPES[2], RECIPES[4]].map((r) => (
+            {[recipes[2], recipes[4]].map((r) => (
               <button
                 key={r.id}
                 onClick={() => nav.push('detail')}
@@ -399,6 +402,7 @@ export function AiRecommendScreen({ t }) {
 // ─────────────────────────────────────────────────────────────
 export function AiStepScreen({ t }) {
   const nav = useNav();
+  const { recipes } = useRecipes();
   return (
     <PhoneFrame t={t} screen="07 引导烹饪 Step">
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -573,7 +577,8 @@ export function AiStepScreen({ t }) {
 // ─────────────────────────────────────────────────────────────
 export function CompleteScreen({ t }) {
   const nav = useNav();
-  const r = RECIPES[0];
+  const { recipes } = useRecipes();
+  const r = recipes[0];
   return (
     <PhoneFrame t={t} screen="08 烹饪完成 Complete">
       <div style={{ height: '100%', padding: 0, display: 'flex', flexDirection: 'column' }}>
@@ -712,6 +717,7 @@ export function CompleteScreen({ t }) {
 // ─────────────────────────────────────────────────────────────
 export function AiVoiceScreen({ t }) {
   const nav = useNav();
+  const { recipes } = useRecipes();
   return (
     <PhoneFrame t={t} screen="24 AI 语音 Voice">
       <div style={{ height: '100%', position: 'relative', background: t.text, overflow: 'hidden' }}>

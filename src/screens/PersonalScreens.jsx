@@ -7,8 +7,9 @@ import { TabBar } from '../components/TabBar.jsx';
 import { FoodThumb } from '../components/FoodThumb.jsx';
 import { MachineIllustration } from '../components/MachineIllustration.jsx';
 import { Icon } from '../lib/Icon.jsx';
-import { SEASONINGS, RECIPES } from '../lib/data.js';
+import { SEASONINGS } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
+import { useRecipes } from "../lib/recipes.jsx";
 import { glass, pinkBg } from '../lib/theme.js';
 
 // ─────────────────────────────────────────────────────────────
@@ -16,6 +17,7 @@ import { glass, pinkBg } from '../lib/theme.js';
 // ─────────────────────────────────────────────────────────────
 export function MeScreen({ t }) {
   const nav = useNav();
+  const { recipes } = useRecipes();
   return (
     <PhoneFrame t={t} screen="14 我的 Me">
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -150,7 +152,7 @@ export function MeScreen({ t }) {
               </button>
             </div>
             <div style={{ display: 'flex', gap: 10, overflow: 'hidden' }}>
-              {RECIPES.slice(0, 3).map((r) => (
+              {recipes.slice(0, 3).map((r) => (
                 <button
                   key={r.id}
                   onClick={() => nav.push('detail')}
@@ -246,6 +248,7 @@ function StatBlock({ t, value, label }) {
 // ─────────────────────────────────────────────────────────────
 export function DeviceDetailScreen({ t }) {
   const nav = useNav();
+  const { recipes } = useRecipes();
   return (
     <PhoneFrame t={t} screen="15 设备 Device">
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -406,7 +409,8 @@ export function DeviceDetailScreen({ t }) {
 // ─────────────────────────────────────────────────────────────
 export function HistoryDetailScreen({ t }) {
   const nav = useNav();
-  const r = RECIPES.find((x) => x.id === 'yuxiang');
+  const { recipes } = useRecipes();
+  const r = recipes.find((x) => x.id === 'yuxiang');
   const events = [
     { time: '19:24', label: '开始烹饪',                  kind: 'start' },
     { time: '19:25', label: '调一份鱼香汁 · 71 g',       kind: 'sauce', meta: '6 种调料' },
@@ -601,6 +605,7 @@ function Divider({ t }) {
 // ─────────────────────────────────────────────────────────────
 export function SettingsScreen({ t }) {
   const nav = useNav();
+  const { recipes } = useRecipes();
   return (
     <PhoneFrame t={t} screen="17 设置 Settings">
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -770,6 +775,7 @@ function SettingRow({ t, l, sub, icon, lead, toggle, onClick }) {
 // ─────────────────────────────────────────────────────────────
 export function ShoppingListScreen({ t }) {
   const nav = useNav();
+  const { recipes } = useRecipes();
   const items = {
     生鲜: [
       { name: '猪里脊',   qty: '250 g', have: false, for: '鱼香肉丝' },

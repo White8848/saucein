@@ -28,7 +28,13 @@ jobs:
 
       - run: npm ci
 
+      # Vite only exposes env vars prefixed with VITE_ to the client bundle.
+      # Both come from GitHub Secrets so we don't commit them. Anon key is
+      # safe to ship to the client; RLS gates actual table access.
       - run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - uses: actions/configure-pages@v5
 

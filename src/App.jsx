@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 // (useState/useEffect retained for DevMenu — Stage no longer needs them.)
 import { theme } from './lib/theme.js';
 import { NavProvider, useNav } from './lib/nav.jsx';
+import { RecipesProvider } from './lib/recipes.jsx';
 
 import { CoverScreen } from './screens/CoverScreen.jsx';
 import {
@@ -122,9 +123,11 @@ const DEV_GROUPS = [
 
 export function App() {
   return (
-    <NavProvider initial="home">
-      <Shell />
-    </NavProvider>
+    <RecipesProvider>
+      <NavProvider initial="home">
+        <Shell />
+      </NavProvider>
+    </RecipesProvider>
   );
 }
 

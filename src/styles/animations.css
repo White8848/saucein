@@ -29,6 +29,11 @@ button { font-family: inherit; cursor: pointer; }
   display: none;
 }
 
+/* Generic spinner rotation — used by the recipes splash loader */
+@keyframes sm-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Progress ring fill — Dispensing screen */
 @keyframes ringFill {
   0%   { stroke-dashoffset: 490; }

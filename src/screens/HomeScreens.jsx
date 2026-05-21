@@ -5,8 +5,9 @@ import { TabBar } from '../components/TabBar.jsx';
 import { FoodThumb } from '../components/FoodThumb.jsx';
 import { MachineIllustration } from '../components/MachineIllustration.jsx';
 import { Icon } from '../lib/Icon.jsx';
-import { SEASONINGS, RECIPES } from '../lib/data.js';
+import { SEASONINGS } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
+import { useRecipes } from "../lib/recipes.jsx";
 import { glass, pinkBg } from '../lib/theme.js';
 
 // ─────────────────────────────────────────────────────────────
@@ -14,6 +15,7 @@ import { glass, pinkBg } from '../lib/theme.js';
 // ─────────────────────────────────────────────────────────────
 export function HomeScreen({ t }) {
   const nav = useNav();
+  const { recipes } = useRecipes();
   return (
     <PhoneFrame t={t} screen="04 首页 Home">
       <div style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -150,7 +152,7 @@ export function HomeScreen({ t }) {
               </button>
             </div>
             <div style={{ display: 'flex', gap: 10, overflow: 'hidden' }}>
-              {RECIPES.slice(0, 3).map((r) => (
+              {recipes.slice(0, 3).map((r) => (
                 <button
                   key={r.id}
                   onClick={() => nav.push('detail')}
@@ -223,6 +225,7 @@ export function QuickCard({ t, title, sub, icon, tone, onClick }) {
 // ─────────────────────────────────────────────────────────────
 export function HomeLowStockScreen({ t }) {
   const nav = useNav();
+  const { recipes } = useRecipes();
   return (
     <PhoneFrame t={t} screen="22 首页 · 缺料提醒">
       <div style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -398,7 +401,7 @@ export function HomeLowStockScreen({ t }) {
               </button>
             </div>
             <div style={{ display: 'flex', gap: 10, overflow: 'hidden' }}>
-              {RECIPES.slice(0, 3).map((r) => (
+              {recipes.slice(0, 3).map((r) => (
                 <button
                   key={r.id}
                   onClick={() => nav.push('detail')}
@@ -427,6 +430,7 @@ export function HomeLowStockScreen({ t }) {
 // ─────────────────────────────────────────────────────────────
 export function HomeOfflineScreen({ t }) {
   const nav = useNav();
+  const { recipes } = useRecipes();
   return (
     <PhoneFrame t={t} screen="23 首页 · 设备离线">
       <div style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>

@@ -6,8 +6,9 @@ import { CircleButton } from '../components/CircleButton.jsx';
 import { TabBar } from '../components/TabBar.jsx';
 import { FoodThumb } from '../components/FoodThumb.jsx';
 import { Icon } from '../lib/Icon.jsx';
-import { RECIPES, SEASONINGS, YUXIANG_RATIO, heroBg } from '../lib/data.js';
+import { SEASONINGS, YUXIANG_RATIO, heroBg } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
+import { useRecipes } from "../lib/recipes.jsx";
 import { glass, pinkBg } from '../lib/theme.js';
 
 // ─────────────────────────────────────────────────────────────
@@ -15,6 +16,7 @@ import { glass, pinkBg } from '../lib/theme.js';
 // ─────────────────────────────────────────────────────────────
 export function RecipeListScreen({ t }) {
   const nav = useNav();
+  const { recipes } = useRecipes();
   const cats = ['全部', '川菜', '家常', '凉菜', '粤菜', '湘菜'];
   return (
     <PhoneFrame t={t} screen="09 食谱列表 Recipes">
@@ -83,7 +85,7 @@ export function RecipeListScreen({ t }) {
                 width: '100%', padding: 0, border: 'none', cursor: 'pointer',
                 borderRadius: 20, overflow: 'hidden', height: 220,
                 position: 'relative',
-                ...heroBg(RECIPES[0]),
+                ...heroBg(recipes[0]),
               }}
             >
               <div
@@ -106,15 +108,15 @@ export function RecipeListScreen({ t }) {
               </div>
               <div style={{ position: 'absolute', bottom: 14, left: 14, right: 14, color: '#fff' }}>
                 <div style={{ fontSize: 11, opacity: 0.85, fontWeight: 500, letterSpacing: 0.3, marginBottom: 4 }}>
-                  {RECIPES[0].english} · 川菜
+                  {recipes[0].english} · 川菜
                 </div>
                 <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: -0.5, lineHeight: 1.1 }}>
-                  {RECIPES[0].name}
+                  {recipes[0].name}
                 </div>
                 <div style={{ fontSize: 11, marginTop: 6, opacity: 0.85, display: 'flex', gap: 10 }}>
                   <span>难度 ★★☆</span>
                   <span>·</span>
-                  <span>{RECIPES[0].time} 分钟</span>
+                  <span>{recipes[0].time} 分钟</span>
                   <span>·</span>
                   <span>调味机自动配酱</span>
                 </div>
@@ -129,7 +131,7 @@ export function RecipeListScreen({ t }) {
               display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12,
             }}
           >
-            {RECIPES.slice(1, 5).map((r) => (
+            {recipes.slice(1, 5).map((r) => (
               <button
                 key={r.id}
                 onClick={() => nav.push('detail')}
@@ -170,7 +172,8 @@ export function RecipeListScreen({ t }) {
 // ─────────────────────────────────────────────────────────────
 export function RecipeDetailScreen({ t }) {
   const nav = useNav();
-  const r = RECIPES[0];
+  const { recipes } = useRecipes();
+  const r = recipes[0];
   return (
     <PhoneFrame t={t} screen="10 食谱详情 Detail">
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -397,6 +400,7 @@ function StatCell({ t, label, value }) {
 // ─────────────────────────────────────────────────────────────
 export function SearchResultsScreen({ t }) {
   const nav = useNav();
+  const { recipes } = useRecipes();
   return (
     <PhoneFrame t={t} screen="18 搜索 Search">
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -468,9 +472,9 @@ export function SearchResultsScreen({ t }) {
           </div>
 
           {[
-            RECIPES.find((r) => r.id === 'suntai'),
-            RECIPES.find((r) => r.id === 'shengcai'),
-            RECIPES.find((r) => r.id === 'yuxiang'),
+            recipes.find((r) => r.id === 'suntai'),
+            recipes.find((r) => r.id === 'shengcai'),
+            recipes.find((r) => r.id === 'yuxiang'),
           ].map((r, i) => (
             <button
               key={r.id}
