@@ -7,7 +7,7 @@ import { FoodThumb } from '../components/FoodThumb.jsx';
 import { Icon } from '../lib/Icon.jsx';
 import { heroBg } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
-import { useRecipes } from "../lib/recipes.jsx";
+import { useRecipes, fetchRecipeDetail } from "../lib/recipes.jsx";
 import { useLocalStorage } from '../lib/storage.js';
 import { glass, pinkBg } from '../lib/theme.js';
 import { chat, MAX_TURNS, LimitReachedError } from '../lib/ai.js';
@@ -470,7 +470,7 @@ export function AiRecommendScreen({ t }) {
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 <button
-                  onClick={() => nav.push('step')}
+                  onClick={() => nav.push('step', { recipeId: recipes[0].id })}
                   style={{
                     padding: '6px 12px', borderRadius: 100,
                     background: '#fff', color: t.text,
@@ -552,63 +552,51 @@ export function AiRecommendScreen({ t }) {
 // ─────────────────────────────────────────────────────────────
 // AI Step — guided cooking
 // ─────────────────────────────────────────────────────────────
-// Six guided steps for 鱼香肉丝 — step 3 matches the original design;
-// the other five are written in the same voice. Counter, progress, and
-// content all derive from `step` so prev/next genuinely walk the user.
-const COOKING_STEPS = [
-  {
-    title: '腌制肉丝',
-    body: '里脊肉切丝, 加 1 勺料酒 + 一撮淀粉, 用手抓匀, 静置 10 分钟。',
-    heat: '冷盘',
-    timer: '10:00',
-    tip: '上浆后下锅不易粘连, 滑炒口感更嫩。',
-  },
-  {
-    title: '配料切丝',
-    body: '木耳泡发切丝, 胡萝卜与青笋切均匀的细丝, 蒜蒜末备用。',
-    heat: '准备',
-    timer: '4:00',
-    tip: '所有食材切到同等粗细, 受热才能均匀。',
-  },
-  {
-    title: '倒入肉丝, 滑炒至变色',
-    body: '油温六成热, 沿锅边滑入腌好的肉丝。用筷子快速拨散, 避免成团。',
-    heat: '中火',
-    timer: '1:30',
-    tip: '听见持续的吱啦声就对了 — 这是水分被锁住的信号。变色立刻盛出。',
-  },
-  {
-    title: '下配料翻炒',
-    body: '原锅留底油, 爆香蒜末, 下木耳、胡萝卜、青笋, 大火翻炒 1 分钟。',
-    heat: '大火',
-    timer: '1:00',
-    tip: '配料先下, 让锅气把香味裹住, 再回锅肉丝。',
-  },
-  {
-    title: '倒入鱼香汁勾芡',
-    body: '把肉丝回锅, 沿锅边淋入调味机调好的鱼香汁, 翻匀至挂芡。',
-    heat: '中火',
-    timer: '0:40',
-    tip: '芡汁要边淋边翻, 见到酱汁变亮就关火。',
-  },
-  {
-    title: '装盘',
-    body: '出锅, 盛入盘中, 撒一点葱花点缀, 立即上桌。',
-    heat: '关火',
-    timer: '0:20',
-    tip: '热气在的时候吃最香 — 这步别等。',
-  },
-];
+// Reads `nav.params.recipeId` (falls back to recipes[0] when the screen was
+// opened without one — e.g. the dev menu). Pulls steps + heat/timer/tip
+// from Supabase via fetchRecipeDetail; the UI is fully data-driven so any
+// recipe in the catalog can be cooked.
+
+// Render `duration_sec` (integer) as "m:ss" — matches the original "1:30" labels.
+function fmtDuration(sec) {
+  if (!Number.isFinite(sec) || sec <= 0) return '—';
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
 
 export function AiStepScreen({ t }) {
   const nav = useNav();
-  // step is 1-based to match "{step}/6" in the design.
+  const { recipes, byId } = useRecipes();
+  const id = nav.params?.recipeId || recipes[0]?.id;
+  const r = byId[id] || recipes[0];
+
+  // 1-based step index to match the "{step}/{total}" counter in the design.
   const [step, setStep] = useState(1);
-  const total = COOKING_STEPS.length;
-  const cur = COOKING_STEPS[step - 1];
-  const pct = (step / total) * 100;
+  const [detail, setDetail] = useState({ steps: [], loading: true });
+
+  // Reload steps when the recipe changes; also reset progress to step 1.
+  useEffect(() => {
+    if (!r?.id) return;
+    let cancelled = false;
+    setDetail((d) => ({ ...d, loading: true }));
+    setStep(1);
+    fetchRecipeDetail(r.id).then((d) => {
+      if (!cancelled) setDetail({ steps: d.steps || [], loading: false });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [r?.id]);
+
+  if (!r) return null;
+
+  const total = detail.steps.length;
+  const cur = detail.steps[step - 1];
+  const pct = total ? (step / total) * 100 : 0;
   const onPrev = () => (step > 1 ? setStep(step - 1) : nav.pop());
-  const onNext = () => (step < total ? setStep(step + 1) : nav.push('complete'));
+  const onNext = () =>
+    step < total ? setStep(step + 1) : nav.push('complete', { recipeId: r.id });
 
   return (
     <PhoneFrame t={t} screen="07 引导烹饪 Step">
@@ -618,11 +606,11 @@ export function AiStepScreen({ t }) {
           <CircleButton t={t} icon="close" onClick={() => nav.setTab('home')} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 11, color: t.textSec, letterSpacing: 0.4, fontWeight: 500 }}>
-              引导式烹饪 · 鱼香肉丝
+              引导式烹饪 · {r.name}
             </div>
           </div>
           <div style={{ fontSize: 12, color: t.text, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-            {step} / {total}
+            {total ? `${step} / ${total}` : '⋯'}
           </div>
         </div>
 
@@ -638,13 +626,13 @@ export function AiStepScreen({ t }) {
           </div>
         </div>
 
-        {/* hero */}
+        {/* hero — uses the dish image when available, gradient fallback otherwise */}
         <div style={{ padding: '0 20px' }}>
           <div
             style={{
               width: '100%', height: 220, borderRadius: 20, overflow: 'hidden',
-              background: `radial-gradient(circle at 60% 40%, #E0974C, #6E2A0F)`,
               position: 'relative',
+              ...heroBg(r),
             }}
           >
             <div
@@ -653,18 +641,20 @@ export function AiStepScreen({ t }) {
                 background: 'radial-gradient(ellipse at 50% 80%, rgba(0,0,0,0.4), transparent 70%)',
               }}
             />
-            <div
-              style={{
-                position: 'absolute', top: 12, right: 12,
-                padding: '5px 10px', borderRadius: 100,
-                background: 'rgba(0,0,0,0.55)',
-                color: '#fff', fontSize: 11, fontWeight: 600,
-                display: 'flex', alignItems: 'center', gap: 4,
-              }}
-            >
-              <Icon name="flame" size={12} color="#fff" stroke={2} />
-              {cur.heat}
-            </div>
+            {cur?.heat && (
+              <div
+                style={{
+                  position: 'absolute', top: 12, right: 12,
+                  padding: '5px 10px', borderRadius: 100,
+                  background: 'rgba(0,0,0,0.55)',
+                  color: '#fff', fontSize: 11, fontWeight: 600,
+                  display: 'flex', alignItems: 'center', gap: 4,
+                }}
+              >
+                <Icon name="flame" size={12} color="#fff" stroke={2} />
+                {cur.heat}
+              </div>
+            )}
           </div>
         </div>
 
@@ -674,10 +664,10 @@ export function AiStepScreen({ t }) {
             STEP {String(step).padStart(2, '0')}
           </div>
           <div style={{ fontSize: 24, fontWeight: t.titleWeight, letterSpacing: -0.5, lineHeight: 1.2, marginBottom: 10 }}>
-            {cur.title}
+            {cur?.title || (detail.loading ? '加载中⋯' : '暂无步骤')}
           </div>
           <div style={{ fontSize: 14, color: t.textSec, lineHeight: 1.55 }}>
-            {cur.body}
+            {cur?.description}
           </div>
 
           {/* timer + AI button */}
@@ -701,7 +691,7 @@ export function AiStepScreen({ t }) {
               <div>
                 <div style={{ fontSize: 10, color: t.textSec, fontWeight: 500, letterSpacing: 0.3 }}>预计时长</div>
                 <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums' }}>
-                  {cur.timer}
+                  {fmtDuration(cur?.duration_sec)}
                 </div>
               </div>
             </div>
@@ -720,30 +710,32 @@ export function AiStepScreen({ t }) {
             </button>
           </div>
 
-          {/* tip */}
-          <div
-            style={{
-              marginTop: 16, padding: 14,
-              ...glass("card"), border: `0.5px solid ${t.line}`,
-              borderRadius: 14, display: 'flex', gap: 10,
-            }}
-          >
+          {/* tip — only rendered when the DB row carries one */}
+          {cur?.tip && (
             <div
               style={{
-                width: 28, height: 28, borderRadius: 14, ...pinkBg,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
+                marginTop: 16, padding: 14,
+                ...glass("card"), border: `0.5px solid ${t.line}`,
+                borderRadius: 14, display: 'flex', gap: 10,
               }}
             >
-              <Icon name="sparkle" size={14} color={t.accentText} stroke={2.2} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 11, color: t.accent, fontWeight: 600, letterSpacing: 0.4 }}>陈师傅提示</div>
-              <div style={{ fontSize: 13, color: t.text, lineHeight: 1.5, marginTop: 3 }}>
-                {cur.tip}
+              <div
+                style={{
+                  width: 28, height: 28, borderRadius: 14, ...pinkBg,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Icon name="sparkle" size={14} color={t.accentText} stroke={2.2} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: t.accent, fontWeight: 600, letterSpacing: 0.4 }}>陈师傅提示</div>
+                <div style={{ fontSize: 13, color: t.text, lineHeight: 1.5, marginTop: 3 }}>
+                  {cur.tip}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* nav */}
@@ -769,11 +761,13 @@ export function AiStepScreen({ t }) {
           </button>
           <button
             onClick={onNext}
+            disabled={!total}
             style={{
               flex: 1, height: 52, borderRadius: 14, border: 'none',
               ...pinkBg, color: t.accentText,
               fontSize: 15, fontWeight: 600, fontFamily: t.font,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              opacity: total ? 1 : 0.5,
             }}
           >
             {step < total ? '完成, 下一步' : '完成烹饪'}
@@ -792,9 +786,12 @@ export function AiStepScreen({ t }) {
 // ─────────────────────────────────────────────────────────────
 export function CompleteScreen({ t }) {
   const nav = useNav();
-  const { recipes } = useRecipes();
+  const { recipes, byId } = useRecipes();
   const toast = useToast();
-  const r = recipes[0];
+  // Honor the recipe that was actually cooked — AiStepScreen forwards the id
+  // when finishing. Falls back to recipes[0] when entered cold (dev menu).
+  const id = nav.params?.recipeId || recipes[0]?.id;
+  const r = byId[id] || recipes[0];
   const [rating, setRating] = useState(4);
   const [feedback, setFeedback] = useState('正好');
   const [favIds, setFavIds] = useLocalStorage('favorites', []);
@@ -860,7 +857,7 @@ export function CompleteScreen({ t }) {
               {r.name}
             </div>
             <div style={{ fontSize: 13, color: t.textSec, marginTop: 6 }}>
-              耗时 21 分钟 · 比平均快 2 分钟
+              {r.category} · 用时 {r.time} 分钟
             </div>
           </div>
 
