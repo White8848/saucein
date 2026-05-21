@@ -13,6 +13,18 @@ body {
 * { box-sizing: border-box; }
 button { font-family: inherit; cursor: pointer; }
 
+/* Hide scrollbars — keep scroll functional, just no visible track/thumb.
+   Applies everywhere in the app (phone screens + dev drawer). */
+* {
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE / old Edge */
+}
+*::-webkit-scrollbar {           /* Chrome / Safari / new Edge */
+  width: 0;
+  height: 0;
+  display: none;
+}
+
 /* Progress ring fill — Dispensing screen */
 @keyframes ringFill {
   0%   { stroke-dashoffset: 490; }
