@@ -1,0 +1,12 @@
+{
+  "name": "SAUCEIN",
+  "short_name": "SAUCEIN",
+  "description": "智能调味机 · 粉系毛玻璃",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
+  "lang": "zh-CN"
+}
