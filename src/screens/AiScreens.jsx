@@ -78,7 +78,7 @@ export function AiChatScreen({ t }) {
             </div>
           ))}
           <div className="anim-bubble-in" style={{ animationDelay: `${bubbles.length * 0.15}s` }}>
-            <RecipeChatCard t={t} r={recipes.find((r) => r.id === 'suntai')} onClick={() => nav.push('detail')} />
+            <RecipeChatCard t={t} r={recipes.find((r) => r.id === 'suntai')} onClick={() => nav.push('detail', { recipeId: 'suntai' })} />
           </div>
           <div
             className="anim-bubble-in"
@@ -330,7 +330,7 @@ export function AiRecommendScreen({ t }) {
                   开始 <Icon name="arrow-r" size={12} color={t.text} stroke={2.4} />
                 </button>
                 <button
-                  onClick={() => nav.push('detail')}
+                  onClick={() => nav.push('detail', { recipeId: recipes[0].id })}
                   style={{
                     padding: '6px 12px', borderRadius: 100,
                     background: 'rgba(255,255,255,0.18)', color: '#fff',
@@ -351,7 +351,7 @@ export function AiRecommendScreen({ t }) {
             {[recipes[2], recipes[4]].map((r) => (
               <button
                 key={r.id}
-                onClick={() => nav.push('detail')}
+                onClick={() => nav.push('detail', { recipeId: r.id })}
                 style={{
                   ...glass("card"), borderRadius: 16,
                   border: `0.5px solid ${t.line}`,

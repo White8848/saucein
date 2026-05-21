@@ -155,7 +155,7 @@ export function HomeScreen({ t }) {
               {recipes.slice(0, 3).map((r) => (
                 <button
                   key={r.id}
-                  onClick={() => nav.push('detail')}
+                  onClick={() => nav.push('detail', { recipeId: r.id })}
                   style={{
                     flex: 1, padding: 0,
                     background: 'transparent', border: 'none', cursor: 'pointer',
@@ -404,7 +404,7 @@ export function HomeLowStockScreen({ t }) {
               {recipes.slice(0, 3).map((r) => (
                 <button
                   key={r.id}
-                  onClick={() => nav.push('detail')}
+                  onClick={() => nav.push('detail', { recipeId: r.id })}
                   style={{
                     flex: 1, padding: 0,
                     background: 'transparent', border: 'none', cursor: 'pointer',

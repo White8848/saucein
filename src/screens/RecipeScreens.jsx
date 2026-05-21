@@ -1,6 +1,6 @@
 // Recipe list, detail, and search results.
 
-import { Fragment } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { PhoneFrame, HomeIndicator } from '../components/PhoneFrame.jsx';
 import { CircleButton } from '../components/CircleButton.jsx';
 import { TabBar } from '../components/TabBar.jsx';
@@ -8,7 +8,7 @@ import { FoodThumb } from '../components/FoodThumb.jsx';
 import { Icon } from '../lib/Icon.jsx';
 import { SEASONINGS, YUXIANG_RATIO, heroBg } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
-import { useRecipes } from "../lib/recipes.jsx";
+import { useRecipes, fetchRecipeDetail } from "../lib/recipes.jsx";
 import { glass, pinkBg } from '../lib/theme.js';
 
 // ─────────────────────────────────────────────────────────────
@@ -80,7 +80,7 @@ export function RecipeListScreen({ t }) {
           {/* hot pick */}
           <div style={{ padding: '20px 20px 0' }}>
             <button
-              onClick={() => nav.push('detail')}
+              onClick={() => nav.push('detail', { recipeId: recipes[0].id })}
               style={{
                 width: '100%', padding: 0, border: 'none', cursor: 'pointer',
                 borderRadius: 20, overflow: 'hidden', height: 220,
@@ -134,7 +134,7 @@ export function RecipeListScreen({ t }) {
             {recipes.slice(1, 5).map((r) => (
               <button
                 key={r.id}
-                onClick={() => nav.push('detail')}
+                onClick={() => nav.push('detail', { recipeId: r.id })}
                 style={{
                   padding: 0, background: 'transparent', border: 'none', cursor: 'pointer',
                   textAlign: 'left', fontFamily: t.font, color: t.text,
@@ -172,8 +172,34 @@ export function RecipeListScreen({ t }) {
 // ─────────────────────────────────────────────────────────────
 export function RecipeDetailScreen({ t }) {
   const nav = useNav();
-  const { recipes } = useRecipes();
-  const r = recipes[0];
+  const { recipes, byId } = useRecipes();
+  // Recipe to show — passed via nav.params.recipeId; falls back to the
+  // first recipe if nav wasn't given an id (e.g., dev menu jumped here).
+  const id = nav.params?.recipeId || recipes[0]?.id;
+  const r = byId[id] || recipes[0];
+
+  // Fetch steps + ingredients for this recipe. Cached per-id in recipes.jsx
+  // so toggling between detail pages doesn't refetch.
+  const [detail, setDetail] = useState({ steps: [], ingredients: [], loading: true });
+  useEffect(() => {
+    if (!r?.id) return;
+    let cancelled = false;
+    setDetail((d) => ({ ...d, loading: true }));
+    fetchRecipeDetail(r.id).then((d) => {
+      if (!cancelled) setDetail({ ...d, loading: false });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [r?.id]);
+
+  if (!r) return null;
+
+  const isYuxiang = r.id === 'yuxiang';
+  const sauceName = isYuxiang ? '鱼香汁 · 71 g' : `${r.name}专用酱汁`;
+  const sauceSub = isYuxiang
+    ? '咸甜微辣 · 带荔枝口'
+    : (r.tags || []).join(' · ') || '调味机自动调配';
   return (
     <PhoneFrame t={t} screen="10 食谱详情 Detail">
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -270,32 +296,45 @@ export function RecipeDetailScreen({ t }) {
               }}
             >
               <div style={{ fontSize: 11, opacity: 0.85, fontWeight: 500, letterSpacing: 0.3 }}>
-                鱼香汁 · 71 g
+                {sauceName}
               </div>
               <div style={{ fontSize: 20, fontWeight: 700, marginTop: 2, letterSpacing: -0.3 }}>
-                咸甜微辣 · 带荔枝口
+                {sauceSub}
               </div>
-              <div
-                style={{
-                  marginTop: 14, display: 'flex', height: 8,
-                  borderRadius: 100, overflow: 'hidden',
-                }}
-              >
-                {YUXIANG_RATIO.map((s) => {
-                  const seasoning = SEASONINGS.find((x) => x.key === s.key);
-                  return <div key={s.key} style={{ flex: s.grams, background: seasoning?.color || '#fff' }} />;
-                })}
-              </div>
-              <div
-                style={{
-                  display: 'flex', justifyContent: 'space-between',
-                  marginTop: 10, fontSize: 10, opacity: 0.85,
-                }}
-              >
-                {YUXIANG_RATIO.slice(0, 4).map((s) => (
-                  <span key={s.key}>{s.label} {s.grams}g</span>
-                ))}
-              </div>
+              {isYuxiang && (
+                <>
+                  <div
+                    style={{
+                      marginTop: 14, display: 'flex', height: 8,
+                      borderRadius: 100, overflow: 'hidden',
+                    }}
+                  >
+                    {YUXIANG_RATIO.map((s) => {
+                      const seasoning = SEASONINGS.find((x) => x.key === s.key);
+                      return <div key={s.key} style={{ flex: s.grams, background: seasoning?.color || '#fff' }} />;
+                    })}
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex', justifyContent: 'space-between',
+                      marginTop: 10, fontSize: 10, opacity: 0.85,
+                    }}
+                  >
+                    {YUXIANG_RATIO.slice(0, 4).map((s) => (
+                      <span key={s.key}>{s.label} {s.grams}g</span>
+                    ))}
+                  </div>
+                </>
+              )}
+              {!isYuxiang && (
+                <div
+                  style={{
+                    marginTop: 14, fontSize: 11, opacity: 0.85, lineHeight: 1.5,
+                  }}
+                >
+                  AI 已根据本菜的口味档案预设配比 · 点击"调整"自定义
+                </div>
+              )}
             </div>
           </div>
 
@@ -304,53 +343,65 @@ export function RecipeDetailScreen({ t }) {
             <div style={{ fontSize: 16, fontWeight: t.titleWeight, letterSpacing: -0.2, marginBottom: 10 }}>
               主料
             </div>
-            {[
-              { name: '猪里脊', amt: '250 g' },
-              { name: '木耳 (泡发)', amt: '40 g' },
-              { name: '胡萝卜', amt: '60 g' },
-              { name: '青笋', amt: '80 g' },
-            ].map((ing, i, arr) => (
-              <div
-                key={ing.name}
-                style={{
-                  display: 'flex', justifyContent: 'space-between',
-                  padding: '12px 0',
-                  borderBottom: i === arr.length - 1 ? 'none' : `0.5px solid ${t.lineSoft}`,
-                  fontSize: 14,
-                }}
-              >
-                <span>{ing.name}</span>
-                <span style={{ color: t.textSec, fontVariantNumeric: 'tabular-nums' }}>{ing.amt}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* steps preview */}
-          <div style={{ padding: '24px 20px 0' }}>
-            <div style={{ fontSize: 16, fontWeight: t.titleWeight, letterSpacing: -0.2, marginBottom: 10 }}>
-              步骤 · 共 6 步
-            </div>
-            {['肉丝上浆腌制 10 分钟', '木耳、胡萝卜、青笋切丝', '调味机自动调配鱼香汁'].map((s, i) => (
-              <div
-                key={i}
-                style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 12,
-                  padding: '10px 0',
-                }}
-              >
+            {detail.loading ? (
+              <div style={{ fontSize: 13, color: t.textSec, padding: '12px 0' }}>加载中⋯</div>
+            ) : detail.ingredients.length === 0 ? (
+              <div style={{ fontSize: 13, color: t.textSec, padding: '12px 0' }}>暂无食材数据</div>
+            ) : (
+              detail.ingredients.map((ing, i, arr) => (
                 <div
+                  key={ing.id ?? ing.name}
                   style={{
-                    width: 24, height: 24, borderRadius: 12, flexShrink: 0,
-                    ...glass("soft"), color: t.text,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 12, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+                    display: 'flex', justifyContent: 'space-between',
+                    padding: '12px 0',
+                    borderBottom: i === arr.length - 1 ? 'none' : `0.5px solid ${t.lineSoft}`,
+                    fontSize: 14,
                   }}
                 >
-                  {i + 1}
+                  <span>{ing.name}</span>
+                  <span style={{ color: t.textSec, fontVariantNumeric: 'tabular-nums' }}>{ing.amount}</span>
                 </div>
-                <div style={{ flex: 1, fontSize: 14, color: t.text, paddingTop: 2 }}>{s}</div>
-              </div>
-            ))}
+              ))
+            )}
+          </div>
+
+          {/* steps preview — show all steps from DB */}
+          <div style={{ padding: '24px 20px 0' }}>
+            <div style={{ fontSize: 16, fontWeight: t.titleWeight, letterSpacing: -0.2, marginBottom: 10 }}>
+              步骤 · 共 {detail.steps.length || '⋯'} 步
+            </div>
+            {detail.loading && detail.steps.length === 0 ? (
+              <div style={{ fontSize: 13, color: t.textSec, padding: '12px 0' }}>加载中⋯</div>
+            ) : (
+              detail.steps.map((s) => (
+                <div
+                  key={s.step_index}
+                  style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 12,
+                    padding: '10px 0',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 24, height: 24, borderRadius: 12, flexShrink: 0,
+                      ...glass("soft"), color: t.text,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {s.step_index}
+                  </div>
+                  <div style={{ flex: 1, paddingTop: 2 }}>
+                    <div style={{ fontSize: 14, color: t.text, fontWeight: 500 }}>{s.title}</div>
+                    {s.description && (
+                      <div style={{ fontSize: 12, color: t.textSec, marginTop: 2, lineHeight: 1.55 }}>
+                        {s.description}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -366,7 +417,7 @@ export function RecipeDetailScreen({ t }) {
           }}
         >
           <button
-            onClick={() => nav.push('step')}
+            onClick={() => nav.push('step', { recipeId: r.id })}
             style={{
               width: '100%', height: 54, borderRadius: 14, border: 'none',
               ...pinkBg, color: t.accentText,
@@ -478,7 +529,7 @@ export function SearchResultsScreen({ t }) {
           ].map((r, i) => (
             <button
               key={r.id}
-              onClick={() => nav.push('detail')}
+              onClick={() => nav.push('detail', { recipeId: r.id })}
               className="anim-step-in"
               style={{
                 width: '100%',

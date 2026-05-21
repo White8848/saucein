@@ -155,7 +155,7 @@ export function MeScreen({ t }) {
               {recipes.slice(0, 3).map((r) => (
                 <button
                   key={r.id}
-                  onClick={() => nav.push('detail')}
+                  onClick={() => nav.push('detail', { recipeId: r.id })}
                   style={{
                     flex: 1, padding: 0,
                     background: 'transparent', border: 'none', cursor: 'pointer',
@@ -556,7 +556,7 @@ export function HistoryDetailScreen({ t }) {
             分享
           </button>
           <button
-            onClick={() => nav.push('detail')}
+            onClick={() => nav.push('detail', { recipeId: r.id })}
             style={{
               flex: 1.4, height: 50, borderRadius: 14, border: 'none',
               ...pinkBg, color: t.accentText,
