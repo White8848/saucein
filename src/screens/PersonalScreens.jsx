@@ -9,6 +9,7 @@ import { MachineIllustration } from '../components/MachineIllustration.jsx';
 import { Icon } from '../lib/Icon.jsx';
 import { SEASONINGS, RECIPES } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
+import { glass, pinkBg } from '../lib/theme.js';
 
 // ─────────────────────────────────────────────────────────────
 // Me
@@ -43,7 +44,7 @@ export function MeScreen({ t }) {
             {/* stats */}
             <div
               style={{
-                marginTop: 18, background: t.card, borderRadius: 16,
+                marginTop: 18, ...glass("card"), borderRadius: 16,
                 border: `0.5px solid ${t.line}`,
                 padding: '16px 0',
                 display: 'flex', alignItems: 'center',
@@ -79,7 +80,7 @@ export function MeScreen({ t }) {
             </div>
             <div
               style={{
-                background: t.card, borderRadius: 16,
+                ...glass("card"), borderRadius: 16,
                 border: `0.5px solid ${t.line}`,
                 padding: '6px 16px',
               }}
@@ -104,7 +105,7 @@ export function MeScreen({ t }) {
                   <div
                     style={{
                       width: 80, height: 6,
-                      background: t.soft, borderRadius: 3, overflow: 'hidden',
+                      ...glass("soft"), borderRadius: 3, overflow: 'hidden',
                     }}
                   >
                     <div
@@ -170,7 +171,7 @@ export function MeScreen({ t }) {
           <div style={{ padding: '24px 20px 0' }}>
             <div
               style={{
-                background: t.card, borderRadius: 16,
+                ...glass("card"), borderRadius: 16,
                 border: `0.5px solid ${t.line}`,
                 padding: '4px 0',
               }}
@@ -196,7 +197,7 @@ export function MeScreen({ t }) {
                 >
                   <div
                     style={{
-                      width: 30, height: 30, borderRadius: 8, background: t.soft,
+                      width: 30, height: 30, borderRadius: 8, ...glass("soft"),
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       marginRight: 12,
                     }}
@@ -260,7 +261,7 @@ export function DeviceDetailScreen({ t }) {
           {/* device card */}
           <div
             style={{
-              padding: 20, background: t.card, border: `0.5px solid ${t.line}`,
+              padding: 20, ...glass("card"), border: `0.5px solid ${t.line}`,
               borderRadius: 20,
               display: 'flex', alignItems: 'center', gap: 16,
             }}
@@ -299,7 +300,7 @@ export function DeviceDetailScreen({ t }) {
                 <div
                   key={s.key}
                   style={{
-                    background: t.card, border: `0.5px solid ${t.line}`,
+                    ...glass("card"), border: `0.5px solid ${t.line}`,
                     borderRadius: 12, padding: 12,
                     display: 'flex', alignItems: 'center', gap: 10,
                   }}
@@ -307,7 +308,7 @@ export function DeviceDetailScreen({ t }) {
                   <div
                     style={{
                       width: 28, height: 44, borderRadius: 4,
-                      background: t.softer,
+                      ...glass("softer"),
                       position: 'relative', overflow: 'hidden',
                       border: `0.5px solid ${t.line}`,
                       flexShrink: 0,
@@ -346,7 +347,7 @@ export function DeviceDetailScreen({ t }) {
           {/* actions */}
           <div
             style={{
-              marginTop: 22, background: t.card, border: `0.5px solid ${t.line}`,
+              marginTop: 22, ...glass("card"), border: `0.5px solid ${t.line}`,
               borderRadius: 16, padding: '4px 0',
             }}
           >
@@ -366,7 +367,7 @@ export function DeviceDetailScreen({ t }) {
               >
                 <div
                   style={{
-                    width: 30, height: 30, borderRadius: 8, background: t.soft,
+                    width: 30, height: 30, borderRadius: 8, ...glass("soft"),
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     marginRight: 12,
                   }}
@@ -449,7 +450,7 @@ export function HistoryDetailScreen({ t }) {
           <div
             style={{
               marginTop: 16, display: 'flex',
-              background: t.card, border: `0.5px solid ${t.line}`,
+              ...glass("card"), border: `0.5px solid ${t.line}`,
               borderRadius: 14, padding: '14px 0',
             }}
           >
@@ -516,7 +517,7 @@ export function HistoryDetailScreen({ t }) {
           {/* feedback */}
           <div
             style={{
-              marginTop: 20, padding: 14, background: t.card,
+              marginTop: 20, padding: 14, ...glass("card"),
               border: `0.5px solid ${t.line}`, borderRadius: 14,
             }}
           >
@@ -534,7 +535,7 @@ export function HistoryDetailScreen({ t }) {
           style={{
             position: 'absolute', bottom: 0, left: 0, right: 0,
             padding: '12px 20px 32px',
-            background: t.tabbarBg,
+            ...glass("tabbar"),
             backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
             borderTop: `0.5px solid ${t.tabbarLine}`,
             display: 'flex', gap: 10,
@@ -554,7 +555,7 @@ export function HistoryDetailScreen({ t }) {
             onClick={() => nav.push('detail')}
             style={{
               flex: 1.4, height: 50, borderRadius: 14, border: 'none',
-              background: t.accent, color: t.accentText,
+              ...pinkBg, color: t.accentText,
               fontSize: 14, fontWeight: 600, fontFamily: t.font,
               cursor: 'pointer',
             }}
@@ -691,7 +692,7 @@ function SettingGroup({ t, label, children }) {
       </div>
       <div
         style={{
-          background: t.card, border: `0.5px solid ${t.line}`,
+          ...glass("card"), border: `0.5px solid ${t.line}`,
           borderRadius: 14, padding: '4px 0',
         }}
       >
@@ -728,7 +729,7 @@ function SettingRow({ t, l, sub, icon, lead, toggle, onClick }) {
         : icon && (
             <div
               style={{
-                width: 30, height: 30, borderRadius: 8, background: t.soft,
+                width: 30, height: 30, borderRadius: 8, ...glass("soft"),
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
@@ -809,7 +810,7 @@ export function ShoppingListScreen({ t }) {
           {/* progress */}
           <div
             style={{
-              marginTop: 16, padding: 14, background: t.card,
+              marginTop: 16, padding: 14, ...glass("card"),
               border: `0.5px solid ${t.line}`, borderRadius: 14,
             }}
           >
@@ -829,7 +830,7 @@ export function ShoppingListScreen({ t }) {
                 2 / 7
               </div>
             </div>
-            <div style={{ height: 6, background: t.soft, borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ height: 6, ...glass("soft"), borderRadius: 3, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: '28%', background: t.accent }} />
             </div>
           </div>
@@ -847,7 +848,7 @@ export function ShoppingListScreen({ t }) {
               </div>
               <div
                 style={{
-                  background: t.card, border: `0.5px solid ${t.line}`,
+                  ...glass("card"), border: `0.5px solid ${t.line}`,
                   borderRadius: 14, padding: '4px 0',
                 }}
               >
@@ -901,7 +902,7 @@ export function ShoppingListScreen({ t }) {
           >
             <div
               style={{
-                width: 22, height: 22, borderRadius: 11, background: t.accent,
+                width: 22, height: 22, borderRadius: 11, ...pinkBg,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
               }}
@@ -922,7 +923,7 @@ export function ShoppingListScreen({ t }) {
           style={{
             position: 'absolute', bottom: 0, left: 0, right: 0,
             padding: '12px 20px 32px',
-            background: t.tabbarBg,
+            ...glass("tabbar"),
             backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
             borderTop: `0.5px solid ${t.tabbarLine}`,
             display: 'flex', gap: 10,
@@ -941,7 +942,7 @@ export function ShoppingListScreen({ t }) {
           <button
             style={{
               flex: 1.4, height: 52, borderRadius: 14, border: 'none',
-              background: t.accent, color: t.accentText,
+              ...pinkBg, color: t.accentText,
               fontSize: 15, fontWeight: 600, fontFamily: t.font,
               cursor: 'pointer',
             }}

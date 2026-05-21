@@ -1,5 +1,6 @@
 import { Icon } from '../lib/Icon.jsx';
 import { useNav } from '../lib/nav.jsx';
+import { glass, pinkBg } from '../lib/theme.js';
 
 // Bottom tab bar with the AI button bumped up and breathing.
 // `active` prop is used as a fallback when nav context isn't available
@@ -25,7 +26,7 @@ export function TabBar({ t, active = 'home' }) {
         paddingTop: 10,
         paddingLeft: 14,
         paddingRight: 14,
-        background: t.tabbarBg,
+        ...glass("tabbar"),
         backdropFilter: 'blur(20px) saturate(180%)',
         WebkitBackdropFilter: 'blur(20px) saturate(180%)',
         borderTop: `0.5px solid ${t.tabbarLine}`,
@@ -65,7 +66,7 @@ export function TabBar({ t, active = 'home' }) {
                   style={{
                     position: 'relative',
                     width: 56, height: 56, borderRadius: 28,
-                    background: t.accent, color: t.accentText,
+                    ...pinkBg, color: t.accentText,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     boxShadow: `0 6px 18px ${t.accent}40, 0 2px 4px rgba(0,0,0,0.08)`,
                   }}

@@ -13,52 +13,9 @@ body {
 * { box-sizing: border-box; }
 button { font-family: inherit; cursor: pointer; }
 
-/* ─────────────────────────────────────────────────────────────
-   Glassmorphism — apply backdrop-filter to any inline-styled element
-   whose background is one of the translucent-white card / soft / tabbar
-   values from the theme. Inline-style substring selectors catch every
-   card / chip / tabbar without touching screen files.
-
-   The values are specific rgba strings unlikely to collide with content,
-   so it's safe to scope by substring.
-   ───────────────────────────────────────────────────────────── */
-[style*="rgba(255,255,255,0.55)"] {
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-}
-/* Stronger blur on the more-opaque "solid card" variant — it sits over
-   busy heroes, so the blur masks more of what's behind. */
-[style*="rgba(255,255,255,0.92)"] {
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-}
-[style*="rgba(255,255,255,0.4)"],
-[style*="rgba(255,255,255,0.35)"],
-[style*="rgba(255,255,255,0.5)"] {
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-}
-/* Faint dark inset edge + pink-tinted drop for every glass card so it
-   stays visible on white interior areas. */
-[style*="rgba(255,255,255,0.55)"],
-[style*="rgba(255,255,255,0.4)"] {
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05),
-              0 4px 24px rgba(238,74,129,0.06);
-}
-
-/* Pink gradient + glow on solid-pink accent buttons.
-   Inline `background: '#EE4A81'` is serialized by browsers as
-   `background: rgb(238, 74, 129)` in the style attribute, so this catches
-   every accent button without affecting text-color usages of the same hex. */
-[style*="background: rgb(238, 74, 129)"] {
-  background: linear-gradient(135deg,
-                #FF8FB4 0%,
-                #F26A98 40%,
-                #EE4A81 70%,
-                #DA3D72 100%) !important;
-  box-shadow: 0 4px 14px rgba(238,74,129,0.32),
-              inset 0 1px 0 rgba(255,255,255,0.25);
-}
+/* Glass + pink-gradient effects now live in React style helpers
+   (lib/theme.js → glass(), pinkBg). Each component spreads them
+   explicitly, so styles live where the elements live. */
 
 /* Hide scrollbars — keep scroll functional, just no visible track/thumb.
    Applies everywhere in the app (phone screens + dev drawer). */

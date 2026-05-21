@@ -1,4 +1,5 @@
 import { Icon } from '../lib/Icon.jsx';
+import { glass, pinkBg } from '../lib/theme.js';
 
 // Design-system cover: palette, type ladder, component preview.
 
@@ -91,7 +92,7 @@ export function CoverScreen({ t }) {
           <div
             style={{
               flex: 1, height: 44, borderRadius: 12,
-              background: t.accent, color: t.accentText,
+              ...pinkBg, color: t.accentText,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 14, fontWeight: 600, gap: 6,
             }}
@@ -110,11 +111,11 @@ export function CoverScreen({ t }) {
             次操作
           </div>
         </div>
-        <div style={{ height: 6, borderRadius: 3, background: t.soft, position: 'relative' }}>
+        <div style={{ height: 6, borderRadius: 3, ...glass("soft"), position: 'relative' }}>
           <div
             style={{
               position: 'absolute', top: 0, left: 0, bottom: 0,
-              width: '60%', background: t.accent, borderRadius: 3,
+              width: '60%', ...pinkBg, borderRadius: 3,
             }}
           />
           <div

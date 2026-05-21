@@ -4,6 +4,7 @@ import { PhoneFrame, HomeIndicator } from '../components/PhoneFrame.jsx';
 import { CircleButton } from '../components/CircleButton.jsx';
 import { Icon } from '../lib/Icon.jsx';
 import { useNav } from '../lib/nav.jsx';
+import { glass, pinkBg } from '../lib/theme.js';
 
 // ─────────────────────────────────────────────────────────────
 // Welcome
@@ -52,7 +53,7 @@ export function WelcomeScreen({ t }) {
             <div
               style={{
                 position: 'absolute', top: 32, left: 46, right: 46, height: 70,
-                background: t.softer, borderRadius: 8,
+                ...glass("softer"), borderRadius: 8,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
@@ -78,7 +79,7 @@ export function WelcomeScreen({ t }) {
                   key={i}
                   style={{
                     width: 6, height: 14,
-                    background: t.softer, borderRadius: 3,
+                    ...glass("softer"), borderRadius: 3,
                     opacity: 0.85 - i * 0.05,
                   }}
                 />
@@ -91,7 +92,7 @@ export function WelcomeScreen({ t }) {
                 position: 'absolute', top: 132, left: '50%',
                 width: 8, height: 12,
                 borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%',
-                background: t.accent,
+                ...pinkBg,
               }}
             />
             {/* base */}
@@ -120,7 +121,7 @@ export function WelcomeScreen({ t }) {
             onClick={() => nav.push('pairing')}
             style={{
               width: '100%', height: 54, borderRadius: 14, border: 'none',
-              background: t.accent, color: t.accentText,
+              ...pinkBg, color: t.accentText,
               fontSize: 16, fontWeight: 600, fontFamily: t.font,
               cursor: 'pointer',
             }}
@@ -212,7 +213,7 @@ export function PairingScreen({ t }) {
             <div
               style={{
                 width: 80, height: 80, borderRadius: '50%',
-                background: t.accent, color: t.accentText,
+                ...pinkBg, color: t.accentText,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: `0 8px 24px ${t.accent}40`,
               }}
@@ -224,14 +225,14 @@ export function PairingScreen({ t }) {
               className="radar-ping"
               style={{
                 position: 'absolute', top: 24, right: 60,
-                width: 10, height: 10, borderRadius: 5, background: t.accent,
+                width: 10, height: 10, borderRadius: 5, ...pinkBg,
               }}
             />
             <div
               className="radar-ping"
               style={{
                 position: 'absolute', bottom: 40, left: 50,
-                width: 6, height: 6, borderRadius: 3, background: t.accent,
+                width: 6, height: 6, borderRadius: 3, ...pinkBg,
                 animationDelay: '1.3s',
               }}
             />
@@ -245,7 +246,7 @@ export function PairingScreen({ t }) {
           </div>
           <div
             style={{
-              background: t.card,
+              ...glass("card"),
               border: `1.5px solid ${t.accent}`,
               borderRadius: 16, padding: 14,
               display: 'flex', alignItems: 'center', gap: 12,
@@ -276,7 +277,7 @@ export function PairingScreen({ t }) {
             onClick={() => nav.push('taste')}
             style={{
               width: '100%', height: 54, borderRadius: 14, border: 'none',
-              background: t.accent, color: t.accentText,
+              ...pinkBg, color: t.accentText,
               fontSize: 16, fontWeight: 600, fontFamily: t.font,
               cursor: 'pointer',
             }}
@@ -350,11 +351,11 @@ export function TasteProfileScreen({ t }) {
                     {p.val < 0.3 ? '清淡' : p.val < 0.55 ? '适中' : p.val < 0.75 ? '偏重' : '重口'}
                   </span>
                 </div>
-                <div style={{ position: 'relative', height: 6, background: t.soft, borderRadius: 3 }}>
+                <div style={{ position: 'relative', height: 6, ...glass("soft"), borderRadius: 3 }}>
                   <div
                     style={{
                       position: 'absolute', top: 0, left: 0, bottom: 0,
-                      width: `${p.val * 100}%`, background: t.accent, borderRadius: 3,
+                      width: `${p.val * 100}%`, ...pinkBg, borderRadius: 3,
                     }}
                   />
                   <div
@@ -403,7 +404,7 @@ export function TasteProfileScreen({ t }) {
           style={{
             position: 'absolute', bottom: 0, left: 0, right: 0,
             padding: '12px 20px 36px',
-            background: t.tabbarBg,
+            ...glass("tabbar"),
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
             borderTop: `0.5px solid ${t.tabbarLine}`,
@@ -413,7 +414,7 @@ export function TasteProfileScreen({ t }) {
             onClick={() => nav.jump('home')}
             style={{
               width: '100%', height: 54, borderRadius: 14, border: 'none',
-              background: t.accent, color: t.accentText,
+              ...pinkBg, color: t.accentText,
               fontSize: 16, fontWeight: 600, fontFamily: t.font,
               cursor: 'pointer',
             }}

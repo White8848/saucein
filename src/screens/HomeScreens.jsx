@@ -7,6 +7,7 @@ import { MachineIllustration } from '../components/MachineIllustration.jsx';
 import { Icon } from '../lib/Icon.jsx';
 import { SEASONINGS, RECIPES } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
+import { glass, pinkBg } from '../lib/theme.js';
 
 // ─────────────────────────────────────────────────────────────
 // Home — normal
@@ -31,7 +32,7 @@ export function HomeScreen({ t }) {
                 aria-label="搜索"
                 style={{
                   width: 40, height: 40, borderRadius: 20,
-                  background: t.soft, border: 'none', cursor: 'pointer',
+                  ...glass("soft"), border: 'none', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
               >
@@ -44,7 +45,7 @@ export function HomeScreen({ t }) {
           <div style={{ padding: '24px 20px 0' }}>
             <div
               style={{
-                background: t.card, borderRadius: 24,
+                ...glass("card"), borderRadius: 24,
                 border: `0.5px solid ${t.line}`,
                 padding: 20,
                 position: 'relative', overflow: 'hidden',
@@ -70,7 +71,7 @@ export function HomeScreen({ t }) {
                         key={s.key}
                         style={{
                           flex: 1, height: 28, borderRadius: 3,
-                          background: t.soft, position: 'relative', overflow: 'hidden',
+                          ...glass("soft"), position: 'relative', overflow: 'hidden',
                         }}
                       >
                         <div
@@ -92,7 +93,7 @@ export function HomeScreen({ t }) {
                   onClick={() => nav.push('recommend')}
                   style={{
                     flex: 1, height: 44, borderRadius: 12, border: 'none',
-                    background: t.accent, color: t.accentText,
+                    ...pinkBg, color: t.accentText,
                     fontSize: 14, fontWeight: 600, fontFamily: t.font,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     cursor: 'pointer',
@@ -238,7 +239,7 @@ export function HomeLowStockScreen({ t }) {
               <div
                 style={{
                   width: 40, height: 40, borderRadius: 20,
-                  background: t.soft,
+                  ...glass("soft"),
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   position: 'relative',
                 }}
@@ -248,7 +249,7 @@ export function HomeLowStockScreen({ t }) {
                   style={{
                     position: 'absolute', top: 6, right: 6,
                     width: 8, height: 8, borderRadius: 4,
-                    background: t.accent,
+                    ...pinkBg,
                     border: `1.5px solid ${t.bg}`,
                   }}
                 />
@@ -261,7 +262,7 @@ export function HomeLowStockScreen({ t }) {
             <div
               className="anim-bubble-in"
               style={{
-                background: t.accent, color: t.accentText, borderRadius: 16,
+                ...pinkBg, color: t.accentText, borderRadius: 16,
                 padding: '14px 16px',
                 display: 'flex', alignItems: 'center', gap: 12,
               }}
@@ -298,7 +299,7 @@ export function HomeLowStockScreen({ t }) {
           <div style={{ padding: '14px 20px 0' }}>
             <div
               style={{
-                background: t.card, borderRadius: 20,
+                ...glass("card"), borderRadius: 20,
                 border: `0.5px solid ${t.line}`,
                 padding: 18,
                 position: 'relative', overflow: 'hidden',
@@ -321,7 +322,7 @@ export function HomeLowStockScreen({ t }) {
                       key={s.key}
                       style={{
                         flex: 1, height: 28, borderRadius: 3,
-                        background: t.soft,
+                        ...glass("soft"),
                         position: 'relative', overflow: 'hidden',
                         outline: low ? `1.5px solid ${t.accent}` : 'none',
                         outlineOffset: low ? 1 : 0,
@@ -349,7 +350,7 @@ export function HomeLowStockScreen({ t }) {
             <div className="anim-bubble-in" style={{ animationDelay: '0.2s' }}>
               <div
                 style={{
-                  background: t.card, borderRadius: 16,
+                  ...glass("card"), borderRadius: 16,
                   border: `0.5px solid ${t.line}`,
                   padding: 14,
                   display: 'flex', gap: 12,
@@ -357,7 +358,7 @@ export function HomeLowStockScreen({ t }) {
               >
                 <div
                   style={{
-                    width: 32, height: 32, borderRadius: 16, background: t.accent,
+                    width: 32, height: 32, borderRadius: 16, ...pinkBg,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
                   }}
@@ -443,7 +444,7 @@ export function HomeOfflineScreen({ t }) {
           <div style={{ padding: '24px 20px 0' }}>
             <div
               style={{
-                background: t.card, borderRadius: 24,
+                ...glass("card"), borderRadius: 24,
                 border: `0.5px solid ${t.line}`,
                 padding: 22,
                 position: 'relative', overflow: 'hidden',
@@ -479,7 +480,7 @@ export function HomeOfflineScreen({ t }) {
                         key={s.key}
                         style={{
                           flex: 1, height: 28, borderRadius: 3,
-                          background: t.soft,
+                          ...glass("soft"),
                           position: 'relative', overflow: 'hidden',
                         }}
                       >

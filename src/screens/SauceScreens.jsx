@@ -7,6 +7,7 @@ import { TabBar } from '../components/TabBar.jsx';
 import { Icon } from '../lib/Icon.jsx';
 import { SEASONINGS, YUXIANG_RATIO } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
+import { glass, pinkBg } from '../lib/theme.js';
 
 // ─────────────────────────────────────────────────────────────
 // Sauce Library
@@ -38,7 +39,7 @@ export function SauceLibraryScreen({ t }) {
                 onClick={() => nav.push('ratio')}
                 aria-label="新建"
                 style={{
-                  width: 40, height: 40, borderRadius: 20, background: t.accent,
+                  width: 40, height: 40, borderRadius: 20, ...pinkBg,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   border: 'none', cursor: 'pointer',
                 }}
@@ -120,7 +121,7 @@ export function SauceLibraryScreen({ t }) {
                     onClick={() => nav.push('dispense')}
                     style={{
                       padding: '6px 12px', borderRadius: 100,
-                      background: t.accent, color: t.accentText,
+                      ...pinkBg, color: t.accentText,
                       fontSize: 12, fontWeight: 600,
                       border: 'none', cursor: 'pointer', fontFamily: t.font,
                     }}
@@ -139,7 +140,7 @@ export function SauceLibraryScreen({ t }) {
             </div>
             <div
               style={{
-                background: t.card, border: `0.5px solid ${t.line}`,
+                ...glass("card"), border: `0.5px solid ${t.line}`,
                 borderRadius: 16, padding: '6px 0',
               }}
             >
@@ -231,7 +232,7 @@ export function SauceLibraryEmptyScreen({ t }) {
                 onClick={() => nav.push('ratio')}
                 aria-label="新建"
                 style={{
-                  width: 40, height: 40, borderRadius: 20, background: t.accent,
+                  width: 40, height: 40, borderRadius: 20, ...pinkBg,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   border: 'none', cursor: 'pointer',
                 }}
@@ -254,7 +255,7 @@ export function SauceLibraryEmptyScreen({ t }) {
               <div
                 style={{
                   position: 'absolute', top: 14, left: 30, right: 30, bottom: 10,
-                  background: t.soft, borderRadius: 18,
+                  ...glass("soft"), borderRadius: 18,
                 }}
               />
               <div
@@ -295,7 +296,7 @@ export function SauceLibraryEmptyScreen({ t }) {
               onClick={() => nav.setTab('ai')}
               style={{
                 marginTop: 24, height: 48, padding: '0 22px', borderRadius: 12, border: 'none',
-                background: t.accent, color: t.accentText,
+                ...pinkBg, color: t.accentText,
                 fontSize: 14, fontWeight: 600, fontFamily: t.font,
                 display: 'flex', alignItems: 'center', gap: 6,
                 cursor: 'pointer',
@@ -366,7 +367,7 @@ export function SauceRatioScreen({ t }) {
             aria-label="保存"
             style={{
               width: 32, height: 32, borderRadius: 16,
-              background: t.soft,
+              ...glass("soft"),
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 11, fontWeight: 600, color: t.text,
               border: 'none', cursor: 'pointer', fontFamily: t.font,
@@ -395,7 +396,7 @@ export function SauceRatioScreen({ t }) {
           <div
             style={{
               marginTop: 16, padding: 16,
-              background: t.card, border: `0.5px solid ${t.line}`,
+              ...glass("card"), border: `0.5px solid ${t.line}`,
               borderRadius: 16,
             }}
           >
@@ -421,14 +422,14 @@ export function SauceRatioScreen({ t }) {
                   <div
                     style={{
                       height: 60, position: 'relative',
-                      background: t.soft, borderRadius: 6, overflow: 'hidden',
+                      ...glass("soft"), borderRadius: 6, overflow: 'hidden',
                     }}
                   >
                     <div
                       style={{
                         position: 'absolute', bottom: 0, left: 0, right: 0,
                         height: `${p.val * 100}%`,
-                        background: t.accent, opacity: 0.85,
+                        ...pinkBg, opacity: 0.85,
                         transition: 'height 0.18s cubic-bezier(0.4, 0, 0.2, 1)',
                       }}
                     />
@@ -473,7 +474,7 @@ export function SauceRatioScreen({ t }) {
           style={{
             position: 'absolute', bottom: 0, left: 0, right: 0,
             padding: '12px 20px 32px',
-            background: t.tabbarBg,
+            ...glass("tabbar"),
             backdropFilter: 'blur(20px) saturate(180%)',
             WebkitBackdropFilter: 'blur(20px) saturate(180%)',
             borderTop: `0.5px solid ${t.tabbarLine}`,
@@ -495,7 +496,7 @@ export function SauceRatioScreen({ t }) {
             onClick={() => nav.push('dispense')}
             style={{
               flex: 1, height: 54, borderRadius: 14, border: 'none',
-              background: t.accent, color: t.accentText,
+              ...pinkBg, color: t.accentText,
               fontSize: 16, fontWeight: 600, fontFamily: t.font,
               cursor: 'pointer',
             }}
@@ -582,14 +583,14 @@ function SliderRow({ t, s, color, value, onChange }) {
         <div
           style={{
             position: 'absolute', top: 8, left: 0, right: 0,
-            height: 6, background: t.soft, borderRadius: 3,
+            height: 6, ...glass("soft"), borderRadius: 3,
           }}
         />
         <div
           style={{
             position: 'absolute', top: 8, left: 0,
             height: 6, width: `${pct * 100}%`,
-            background: t.accent, borderRadius: 3,
+            ...pinkBg, borderRadius: 3,
           }}
         />
         <div
@@ -647,7 +648,7 @@ export function DispensingScreen({ t }) {
           <div
             style={{
               margin: '20px -4px 0',
-              background: t.card, border: `0.5px solid ${t.line}`,
+              ...glass("card"), border: `0.5px solid ${t.line}`,
               borderRadius: 24,
               padding: '32px 20px',
               position: 'relative', overflow: 'hidden',
@@ -699,7 +700,7 @@ export function DispensingScreen({ t }) {
             <div
               style={{
                 marginTop: 24, padding: '12px 16px',
-                background: t.softer, borderRadius: 12,
+                ...glass("softer"), borderRadius: 12,
                 display: 'flex', alignItems: 'center', gap: 10,
                 width: '100%',
               }}
@@ -822,8 +823,8 @@ export function SaveSauceScreen({ t }) {
         }}
       >
         <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: -0.5 }}>鱼香汁 · 配比</div>
-        <div style={{ marginTop: 16, height: 60, background: t.card, borderRadius: 12 }} />
-        <div style={{ marginTop: 16, height: 200, background: t.card, borderRadius: 12 }} />
+        <div style={{ marginTop: 16, height: 60, ...glass("card"), borderRadius: 12 }} />
+        <div style={{ marginTop: 16, height: 200, ...glass("card"), borderRadius: 12 }} />
       </div>
       {/* dimmer — tapping it closes the sheet */}
       <button
@@ -860,7 +861,7 @@ export function SaveSauceScreen({ t }) {
         <div
           style={{
             marginTop: 16, padding: 14,
-            background: t.card, border: `0.5px solid ${t.line}`,
+            ...glass("card"), border: `0.5px solid ${t.line}`,
             borderRadius: 14,
           }}
         >
@@ -894,7 +895,7 @@ export function SaveSauceScreen({ t }) {
           </div>
           <div
             style={{
-              height: 48, borderRadius: 12, background: t.card,
+              height: 48, borderRadius: 12, ...glass("card"),
               border: `1.5px solid ${t.accent}`,
               padding: '0 14px',
               display: 'flex', alignItems: 'center',
@@ -904,7 +905,7 @@ export function SaveSauceScreen({ t }) {
             老陈版鱼香汁
             <span
               style={{
-                width: 2, height: 18, background: t.accent,
+                width: 2, height: 18, ...pinkBg,
                 marginLeft: 2, animation: 'caretBlink 1s steps(2) infinite',
               }}
             />
@@ -960,7 +961,7 @@ export function SaveSauceScreen({ t }) {
             onClick={() => { nav.closeModal(); nav.jump('library'); }}
             style={{
               flex: 1.4, height: 52, borderRadius: 14, border: 'none',
-              background: t.accent, color: t.accentText,
+              ...pinkBg, color: t.accentText,
               fontSize: 15, fontWeight: 600, fontFamily: t.font,
               cursor: 'pointer',
             }}

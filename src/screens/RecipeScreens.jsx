@@ -8,6 +8,7 @@ import { FoodThumb } from '../components/FoodThumb.jsx';
 import { Icon } from '../lib/Icon.jsx';
 import { RECIPES, SEASONINGS, YUXIANG_RATIO, heroBg } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
+import { glass, pinkBg } from '../lib/theme.js';
 
 // ─────────────────────────────────────────────────────────────
 // Recipe list (小红书风格)
@@ -32,7 +33,7 @@ export function RecipeListScreen({ t }) {
                 aria-label="筛选"
                 style={{
                   width: 40, height: 40, borderRadius: 20,
-                  background: t.soft, border: 'none', cursor: 'pointer',
+                  ...glass("soft"), border: 'none', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
               >
@@ -44,7 +45,7 @@ export function RecipeListScreen({ t }) {
               onClick={() => nav.push('search')}
               style={{
                 width: '100%',
-                marginTop: 14, height: 44, borderRadius: 22, background: t.soft,
+                marginTop: 14, height: 44, borderRadius: 22, ...glass("soft"),
                 display: 'flex', alignItems: 'center',
                 padding: '0 16px', gap: 10,
                 border: 'none', cursor: 'pointer', fontFamily: t.font,
@@ -223,7 +224,7 @@ export function RecipeDetailScreen({ t }) {
           <div
             style={{
               margin: '-24px 20px 0', position: 'relative',
-              background: t.card, borderRadius: 18,
+              ...glass("card"), borderRadius: 18,
               border: `0.5px solid ${t.line}`,
               padding: '16px 4px',
               display: 'flex', alignItems: 'center', justifyContent: 'space-around',
@@ -261,7 +262,7 @@ export function RecipeDetailScreen({ t }) {
             </div>
             <div
               style={{
-                background: t.accent, color: t.accentText, borderRadius: 18,
+                ...pinkBg, color: t.accentText, borderRadius: 18,
                 padding: 16, position: 'relative', overflow: 'hidden',
               }}
             >
@@ -337,7 +338,7 @@ export function RecipeDetailScreen({ t }) {
                 <div
                   style={{
                     width: 24, height: 24, borderRadius: 12, flexShrink: 0,
-                    background: t.soft, color: t.text,
+                    ...glass("soft"), color: t.text,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 12, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
                   }}
@@ -355,7 +356,7 @@ export function RecipeDetailScreen({ t }) {
           style={{
             position: 'absolute', bottom: 0, left: 0, right: 0,
             padding: '12px 20px 32px',
-            background: t.tabbarBg,
+            ...glass("tabbar"),
             backdropFilter: 'blur(20px) saturate(180%)',
             WebkitBackdropFilter: 'blur(20px) saturate(180%)',
             borderTop: `0.5px solid ${t.tabbarLine}`,
@@ -365,7 +366,7 @@ export function RecipeDetailScreen({ t }) {
             onClick={() => nav.push('step')}
             style={{
               width: '100%', height: 54, borderRadius: 14, border: 'none',
-              background: t.accent, color: t.accentText,
+              ...pinkBg, color: t.accentText,
               fontSize: 16, fontWeight: 600, fontFamily: t.font,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               cursor: 'pointer',
@@ -403,7 +404,7 @@ export function SearchResultsScreen({ t }) {
         <div style={{ padding: '54px 16px 8px', display: 'flex', alignItems: 'center', gap: 10 }}>
           <div
             style={{
-              flex: 1, height: 44, borderRadius: 22, background: t.soft,
+              flex: 1, height: 44, borderRadius: 22, ...glass("soft"),
               display: 'flex', alignItems: 'center', padding: '0 16px', gap: 10,
             }}
           >
@@ -522,7 +523,7 @@ export function SearchResultsScreen({ t }) {
                     <span
                       style={{
                         fontSize: 9, padding: '2px 6px',
-                        background: t.accent, color: t.accentText, borderRadius: 4,
+                        ...pinkBg, color: t.accentText, borderRadius: 4,
                         fontWeight: 600, letterSpacing: 0.3,
                       }}
                     >
@@ -532,7 +533,7 @@ export function SearchResultsScreen({ t }) {
                   <span
                     style={{
                       fontSize: 9, padding: '2px 6px',
-                      background: t.soft, color: t.textSec,
+                      ...glass("soft"), color: t.textSec,
                       borderRadius: 4, fontWeight: 500,
                     }}
                   >

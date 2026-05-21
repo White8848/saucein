@@ -1,3 +1,5 @@
+import { glass } from '../lib/theme.js';
+
 // Tiny SAUCEIN S1 front view — shared by Home and Device Detail.
 export function MachineIllustration({ t }) {
   return (
@@ -8,7 +10,7 @@ export function MachineIllustration({ t }) {
       <div
         style={{
           position: 'absolute', top: 8, left: 8, right: 8, height: 38,
-          background: t.softer, borderRadius: 4,
+          ...glass("softer"), borderRadius: 4,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
@@ -26,7 +28,7 @@ export function MachineIllustration({ t }) {
       <div
         style={{
           position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)',
-          width: 6, height: 16, background: t.softer, borderRadius: 3,
+          width: 6, height: 16, ...glass("softer"), borderRadius: 3,
         }}
       />
       {/* feet */}

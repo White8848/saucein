@@ -6,6 +6,7 @@ import { FoodThumb } from '../components/FoodThumb.jsx';
 import { Icon } from '../lib/Icon.jsx';
 import { RECIPES, heroBg } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
+import { glass, pinkBg } from '../lib/theme.js';
 
 // ─────────────────────────────────────────────────────────────
 // AI Chat — full conversation with the chef
@@ -63,7 +64,7 @@ export function AiChatScreen({ t }) {
               alignSelf: 'center',
               fontSize: 11, color: t.textTer,
               padding: '4px 10px', borderRadius: 100,
-              background: t.softer,
+              ...glass("softer"),
               marginBottom: 4,
             }}
           >
@@ -92,7 +93,7 @@ export function AiChatScreen({ t }) {
               key={c}
               style={{
                 padding: '7px 12px', borderRadius: 100,
-                background: t.soft,
+                ...glass("soft"),
                 fontSize: 12, color: t.text, fontWeight: 500,
                 whiteSpace: 'nowrap',
               }}
@@ -106,7 +107,7 @@ export function AiChatScreen({ t }) {
         <div style={{ padding: '12px 16px 32px', display: 'flex', alignItems: 'center', gap: 8 }}>
           <div
             style={{
-              flex: 1, height: 48, borderRadius: 24, background: t.soft,
+              flex: 1, height: 48, borderRadius: 24, ...glass("soft"),
               display: 'flex', alignItems: 'center', padding: '0 16px',
             }}
           >
@@ -115,7 +116,7 @@ export function AiChatScreen({ t }) {
           </div>
           <div
             style={{
-              width: 48, height: 48, borderRadius: 24, background: t.accent,
+              width: 48, height: 48, borderRadius: 24, ...pinkBg,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
@@ -134,7 +135,7 @@ function TypingBubble({ t }) {
     <div
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 5,
-        background: t.soft, color: t.textSec,
+        ...glass("soft"), color: t.textSec,
         padding: '12px 16px', borderRadius: 18, borderBottomLeftRadius: 4,
       }}
     >
@@ -188,7 +189,7 @@ function RecipeChatCard({ t, r, onClick }) {
     <button
       onClick={onClick}
       style={{
-        background: t.card, borderRadius: 14, padding: 10,
+        ...glass("card"), borderRadius: 14, padding: 10,
         border: `0.5px solid ${t.line}`,
         display: 'flex', gap: 10,
         alignSelf: 'flex-start',
@@ -217,7 +218,7 @@ function RecipeChatCard({ t, r, onClick }) {
               key={tag}
               style={{
                 fontSize: 10, color: t.textSec,
-                padding: '2px 6px', background: t.soft, borderRadius: 4,
+                padding: '2px 6px', ...glass("soft"), borderRadius: 4,
               }}
             >
               {tag}
@@ -251,7 +252,7 @@ export function AiRecommendScreen({ t }) {
             <div
               style={{
                 alignSelf: 'flex-end',
-                background: t.soft,
+                ...glass("soft"),
                 padding: '10px 14px',
                 borderRadius: 16, borderBottomLeftRadius: 4,
                 fontSize: 14, lineHeight: 1.5,
@@ -267,7 +268,7 @@ export function AiRecommendScreen({ t }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <div
               style={{
-                width: 22, height: 22, borderRadius: 11, background: t.accent,
+                width: 22, height: 22, borderRadius: 11, ...pinkBg,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
@@ -298,7 +299,7 @@ export function AiRecommendScreen({ t }) {
               style={{
                 position: 'absolute', top: 14, left: 14,
                 padding: '5px 10px', borderRadius: 100,
-                background: t.accent, color: t.accentText,
+                ...pinkBg, color: t.accentText,
                 fontSize: 10, fontWeight: 700, letterSpacing: 0.5,
               }}
             >
@@ -349,7 +350,7 @@ export function AiRecommendScreen({ t }) {
                 key={r.id}
                 onClick={() => nav.push('detail')}
                 style={{
-                  background: t.card, borderRadius: 16,
+                  ...glass("card"), borderRadius: 16,
                   border: `0.5px solid ${t.line}`,
                   overflow: 'hidden',
                   padding: 0, cursor: 'pointer',
@@ -374,7 +375,7 @@ export function AiRecommendScreen({ t }) {
           <div
             style={{
               marginTop: 16, padding: 14,
-              background: t.card, border: `0.5px solid ${t.line}`,
+              ...glass("card"), border: `0.5px solid ${t.line}`,
               borderRadius: 14,
             }}
           >
@@ -414,7 +415,7 @@ export function AiStepScreen({ t }) {
 
         {/* progress */}
         <div style={{ padding: '0 20px 16px' }}>
-          <div style={{ height: 3, background: t.soft, borderRadius: 2, overflow: 'hidden' }}>
+          <div style={{ height: 3, ...glass("soft"), borderRadius: 2, overflow: 'hidden' }}>
             <div style={{ width: '50%', height: '100%', background: t.accent }} />
           </div>
         </div>
@@ -466,14 +467,14 @@ export function AiStepScreen({ t }) {
             <div
               style={{
                 flex: 1, padding: '14px 16px',
-                background: t.soft, borderRadius: 14,
+                ...glass("soft"), borderRadius: 14,
                 display: 'flex', alignItems: 'center', gap: 10,
               }}
             >
               <div
                 style={{
                   width: 36, height: 36, borderRadius: 18,
-                  background: t.card, border: `1px solid ${t.line}`,
+                  ...glass("card"), border: `1px solid ${t.line}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
               >
@@ -503,13 +504,13 @@ export function AiStepScreen({ t }) {
           <div
             style={{
               marginTop: 16, padding: 14,
-              background: t.card, border: `0.5px solid ${t.line}`,
+              ...glass("card"), border: `0.5px solid ${t.line}`,
               borderRadius: 14, display: 'flex', gap: 10,
             }}
           >
             <div
               style={{
-                width: 28, height: 28, borderRadius: 14, background: t.accent,
+                width: 28, height: 28, borderRadius: 14, ...pinkBg,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
               }}
@@ -550,7 +551,7 @@ export function AiStepScreen({ t }) {
             onClick={() => nav.push('complete')}
             style={{
               flex: 1, height: 52, borderRadius: 14, border: 'none',
-              background: t.accent, color: t.accentText,
+              ...pinkBg, color: t.accentText,
               fontSize: 15, fontWeight: 600, fontFamily: t.font,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               cursor: 'pointer',
@@ -607,7 +608,7 @@ export function CompleteScreen({ t }) {
               style={{
                 display: 'inline-flex',
                 padding: '6px 14px', borderRadius: 100,
-                background: t.accent, color: t.accentText,
+                ...pinkBg, color: t.accentText,
                 fontSize: 12, fontWeight: 600, gap: 6,
                 alignItems: 'center',
               }}
@@ -632,7 +633,7 @@ export function CompleteScreen({ t }) {
           <div
             style={{
               marginTop: 28, padding: 18,
-              background: t.card, border: `0.5px solid ${t.line}`,
+              ...glass("card"), border: `0.5px solid ${t.line}`,
               borderRadius: 18,
             }}
           >
@@ -690,7 +691,7 @@ export function CompleteScreen({ t }) {
               onClick={() => nav.setTab('home')}
               style={{
                 flex: 1.4, height: 52, borderRadius: 14, border: 'none',
-                background: t.accent, color: t.accentText,
+                ...pinkBg, color: t.accentText,
                 fontSize: 14, fontWeight: 600, fontFamily: t.font,
                 cursor: 'pointer',
               }}
@@ -769,7 +770,7 @@ export function AiVoiceScreen({ t }) {
           <div
             style={{
               position: 'absolute', inset: 30, borderRadius: '50%',
-              background: t.accent,
+              ...pinkBg,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: `0 8px 32px ${t.accent}60`,
             }}
@@ -846,7 +847,7 @@ export function AiVoiceScreen({ t }) {
           <div
             style={{
               width: 72, height: 72, borderRadius: 36,
-              background: t.accent,
+              ...pinkBg,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: `0 8px 24px ${t.accent}50`,
             }}
