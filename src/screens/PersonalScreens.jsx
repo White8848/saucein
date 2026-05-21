@@ -13,68 +13,144 @@ import { useRecipes } from "../lib/recipes.jsx";
 import { glass, pinkBg } from '../lib/theme.js';
 
 // ─────────────────────────────────────────────────────────────
-// Me
+// Me — editorial profile: hero greeting + monthly highlight +
+//       bottle row + 2×2 action grid + recents
 // ─────────────────────────────────────────────────────────────
 export function MeScreen({ t }) {
   const nav = useNav();
   const { recipes } = useRecipes();
+  const avgRemain = Math.round(
+    SEASONINGS.reduce((a, b) => a + b.remain, 0) / SEASONINGS.length
+  );
+  const lowCount = SEASONINGS.filter((s) => s.remain < 40).length;
+
   return (
     <PhoneFrame t={t} screen="14 我的 Me">
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ flex: 1, overflow: 'auto', paddingBottom: 110 }}>
-          {/* profile */}
-          <div style={{ padding: '64px 20px 0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div
+        <div style={{ flex: 1, overflow: 'auto', paddingBottom: 120 }}>
+
+          {/* hero greeting */}
+          <div style={{ padding: '64px 24px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, color: t.textSec, letterSpacing: 0.6, fontWeight: 500, marginBottom: 6 }}>
+                  晚上好
+                </div>
+                <div style={{ fontSize: 30, fontWeight: t.titleWeight, letterSpacing: -0.6, lineHeight: 1.05 }}>
+                  陈先生
+                </div>
+                <div style={{ fontSize: 12, color: t.textTer, marginTop: 6, letterSpacing: 0.2 }}>
+                  家厨 · 已使用 142 天 · 第 86 次烹饪
+                </div>
+              </div>
+              <button
+                onClick={() => nav.push('settings')}
+                aria-label="设置"
                 style={{
-                  width: 64, height: 64, borderRadius: 32,
-                  background: `linear-gradient(135deg, ${t.accent}, ${t.accent}80)`,
+                  width: 64, height: 64, borderRadius: 32, flexShrink: 0,
+                  background: `linear-gradient(135deg, #FFB4CD 0%, ${t.accent} 100%)`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: t.accentText,
-                  fontSize: 24, fontWeight: 700, letterSpacing: -0.5,
+                  fontSize: 26, fontWeight: 700, letterSpacing: -0.5,
+                  boxShadow: `0 8px 24px ${t.accent}33`,
+                  position: 'relative',
+                  border: 'none', cursor: 'pointer', padding: 0, fontFamily: t.font,
                 }}
               >
-                陈
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 20, fontWeight: t.titleWeight, letterSpacing: -0.3 }}>陈先生</div>
-                <div style={{ fontSize: 12, color: t.textSec, marginTop: 2 }}>家厨 · 已使用 142 天</div>
-              </div>
-              <CircleButton t={t} icon="tune" onClick={() => nav.push('settings')} />
-            </div>
-
-            {/* stats */}
-            <div
-              style={{
-                marginTop: 18, ...glass("card"), borderRadius: 16,
-                border: `0.5px solid ${t.line}`,
-                padding: '16px 0',
-                display: 'flex', alignItems: 'center',
-              }}
-            >
-              <StatBlock t={t} value="86" label="烹饪次数" />
-              <div style={{ width: 1, height: 28, background: t.line }} />
-              <StatBlock t={t} value="24" label="收藏菜谱" />
-              <div style={{ width: 1, height: 28, background: t.line }} />
-              <StatBlock t={t} value="11" label="自定义配方" />
+                <span>陈</span>
+                <div
+                  style={{
+                    position: 'absolute', bottom: -2, right: -2,
+                    width: 22, height: 22, borderRadius: 11, background: '#FFFFFF',
+                    border: `1px solid ${t.line}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <Icon name="tune" size={11} color={t.text} stroke={2} />
+                </div>
+              </button>
             </div>
           </div>
 
-          {/* seasoning levels */}
-          <div style={{ padding: '24px 20px 0' }}>
+          {/* monthly highlight */}
+          <div style={{ padding: '24px 24px 0' }}>
             <div
               style={{
-                display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-                marginBottom: 12,
+                background: t.text, color: '#FFFFFF',
+                borderRadius: 24, padding: '20px 22px 22px',
+                position: 'relative', overflow: 'hidden',
               }}
             >
-              <div style={{ fontSize: 16, fontWeight: t.titleWeight, letterSpacing: -0.2 }}>调料余量</div>
+              <div
+                style={{
+                  position: 'absolute', top: -40, right: -40,
+                  width: 160, height: 160, borderRadius: '50%',
+                  background: `radial-gradient(circle, ${t.accent}66 0%, transparent 70%)`,
+                  pointerEvents: 'none',
+                }}
+              />
+              <div
+                style={{
+                  fontSize: 11, opacity: 0.6, letterSpacing: 0.8, fontWeight: 600,
+                  position: 'relative',
+                }}
+              >
+                2026 · 5 月
+              </div>
+              <div
+                style={{
+                  marginTop: 10, display: 'flex', alignItems: 'baseline', gap: 8,
+                  position: 'relative',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 56, fontWeight: 700, letterSpacing: -2,
+                    lineHeight: 1, fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  23
+                </div>
+                <div style={{ fontSize: 14, opacity: 0.75 }}>道菜 · 共 8h 32m</div>
+              </div>
+              <div
+                style={{
+                  marginTop: 18, display: 'flex', gap: 14,
+                  paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.12)',
+                  position: 'relative',
+                }}
+              >
+                <SubStat n="86" lab="总烹饪" />
+                <SubStat n="24" lab="收藏菜谱" />
+                <SubStat n="11" lab="我的配方" />
+              </div>
+            </div>
+          </div>
+
+          {/* seasoning inventory — bottle row */}
+          <div style={{ padding: '28px 24px 0' }}>
+            <div
+              style={{
+                display: 'flex', alignItems: 'baseline',
+                justifyContent: 'space-between', marginBottom: 14,
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 17, fontWeight: t.titleWeight, letterSpacing: -0.3 }}>调料库存</div>
+                <div style={{ fontSize: 11, color: t.textTer, marginTop: 3, letterSpacing: 0.2 }}>
+                  平均 {avgRemain}%
+                  {lowCount > 0 && (
+                    <span style={{ color: t.accent, fontWeight: 600 }}> · {lowCount} 种偏少</span>
+                  )}
+                </div>
+              </div>
               <button
                 onClick={() => nav.push('shopping')}
                 style={{
-                  fontSize: 12, color: t.accent, fontWeight: 600,
-                  background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
-                  fontFamily: t.font,
+                  padding: '6px 12px', borderRadius: 100,
+                  background: t.accentSoft, color: t.accent,
+                  fontSize: 11, fontWeight: 600, letterSpacing: 0.2,
+                  border: 'none', cursor: 'pointer', fontFamily: t.font,
                 }}
               >
                 购买补充 ›
@@ -82,137 +158,88 @@ export function MeScreen({ t }) {
             </div>
             <div
               style={{
-                ...glass("card"), borderRadius: 16,
-                border: `0.5px solid ${t.line}`,
-                padding: '6px 16px',
+                display: 'flex', gap: 8, alignItems: 'flex-end',
+                padding: '20px 12px 14px',
+                ...glass("softer"), borderRadius: 20,
               }}
             >
-              {SEASONINGS.slice(0, 6).map((s, i, arr) => (
-                <div
-                  key={s.key}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '12px 0',
-                    borderBottom: i === arr.length - 1 ? 'none' : `0.5px solid ${t.lineSoft}`,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 22, height: 22, borderRadius: 4,
-                      background: s.color,
-                      border: s.color === '#FFFFFF' ? `1px solid ${t.line}` : 'none',
-                    }}
-                  />
-                  <div style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>{s.name}</div>
-                  <div
-                    style={{
-                      width: 80, height: 6,
-                      ...glass("soft"), borderRadius: 3, overflow: 'hidden',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: `${s.remain}%`, height: '100%',
-                        background: s.remain < 40 ? t.accent : t.text,
-                      }}
-                    />
-                  </div>
-                  <div
-                    style={{
-                      width: 40, textAlign: 'right',
-                      fontSize: 12, color: s.remain < 40 ? t.accent : t.textSec,
-                      fontWeight: 600, fontVariantNumeric: 'tabular-nums',
-                    }}
-                  >
-                    {s.remain}%
-                  </div>
-                </div>
-              ))}
+              {SEASONINGS.map((s) => <Bottle key={s.key} t={t} s={s} />)}
             </div>
           </div>
 
-          {/* favorites */}
-          <div style={{ padding: '24px 20px 0' }}>
+          {/* 2×2 quick actions */}
+          <div style={{ padding: '20px 24px 0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <ActionCard t={t} icon="machine" title="我的设备" sub="SAUCEIN S1 · 已连接" onClick={() => nav.push('device')}   />
+              <ActionCard t={t} icon="drop"    title="我的配方" sub="11 条收藏"          onClick={() => nav.setTab('sauce')}  />
+              <ActionCard t={t} icon="clock"   title="烹饪历史" sub="86 次记录"          onClick={() => nav.push('history')}  />
+              <ActionCard t={t} icon="tune"    title="偏好设置" sub="少辣 · 少盐"        onClick={() => nav.push('settings')} />
+            </div>
+          </div>
+
+          {/* recent dishes — 4 across */}
+          <div style={{ padding: '24px 24px 0' }}>
             <div
               style={{
-                display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-                marginBottom: 12,
+                display: 'flex', alignItems: 'baseline',
+                justifyContent: 'space-between', marginBottom: 12,
               }}
             >
-              <div style={{ fontSize: 16, fontWeight: t.titleWeight, letterSpacing: -0.2 }}>收藏的菜</div>
+              <div style={{ fontSize: 17, fontWeight: t.titleWeight, letterSpacing: -0.3 }}>最近做过</div>
               <button
-                onClick={() => nav.setTab('book')}
+                onClick={() => nav.push('history')}
                 style={{
                   fontSize: 12, color: t.textSec,
                   background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
                   fontFamily: t.font,
                 }}
               >
-                全部 24 道 ›
+                全部 86 次 ›
               </button>
             </div>
-            <div style={{ display: 'flex', gap: 10, overflow: 'hidden' }}>
-              {recipes.slice(0, 3).map((r) => (
+            <div style={{ display: 'flex', gap: 10 }}>
+              {recipes.slice(0, 4).map((r, i) => (
                 <button
                   key={r.id}
                   onClick={() => nav.push('detail', { recipeId: r.id })}
                   style={{
-                    flex: 1, padding: 0,
+                    flex: 1, minWidth: 0, padding: 0,
                     background: 'transparent', border: 'none', cursor: 'pointer',
                     textAlign: 'left', fontFamily: t.font, color: t.text,
                   }}
                 >
-                  <FoodThumb r={r} style={{ width: '100%', height: 92, borderRadius: 10 }} />
-                  <div style={{ fontSize: 12, fontWeight: 500, marginTop: 6 }}>{r.name}</div>
+                  <FoodThumb r={r} style={{ width: '100%', height: 78, borderRadius: 12 }} />
+                  <div
+                    style={{
+                      fontSize: 12, fontWeight: 600, marginTop: 7, letterSpacing: -0.1,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {r.name}
+                  </div>
+                  <div style={{ fontSize: 10, color: t.textTer, marginTop: 2 }}>
+                    {['今天', '昨天', '3 天前', '上周'][i]}
+                  </div>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* settings list */}
-          <div style={{ padding: '24px 20px 0' }}>
+          {/* version badge */}
+          <div style={{ padding: '28px 24px 0', textAlign: 'center' }}>
             <div
               style={{
-                ...glass("card"), borderRadius: 16,
-                border: `0.5px solid ${t.line}`,
-                padding: '4px 0',
+                display: 'inline-flex', padding: '8px 16px', borderRadius: 100,
+                ...glass("soft"),
+                fontSize: 12, color: t.textSec, fontWeight: 500,
+                gap: 6, alignItems: 'center',
               }}
             >
-              {[
-                { l: '我的设备', s: 'SAUCEIN S1',  i: 'machine', go: 'device'   },
-                { l: '我的配方', s: '11 条',        i: 'drop',    go: 'library'  },
-                { l: '烹饪历史', s: '86 次',        i: 'clock',   go: 'history'  },
-                { l: '偏好设置', s: '少辣 · 少盐',  i: 'tune',    go: 'settings' },
-              ].map((it, i, arr) => (
-                <button
-                  key={it.l}
-                  onClick={() => (it.go === 'library' ? nav.setTab('sauce') : nav.push(it.go))}
-                  style={{
-                    width: '100%',
-                    display: 'flex', alignItems: 'center',
-                    padding: '14px 16px',
-                    borderTop: 'none', borderRight: 'none', borderLeft: 'none',
-                    borderBottom: i === arr.length - 1 ? 'none' : `0.5px solid ${t.lineSoft}`,
-                    background: 'transparent', cursor: 'pointer',
-                    textAlign: 'left', fontFamily: t.font, color: t.text,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 30, height: 30, borderRadius: 8, ...glass("soft"),
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      marginRight: 12,
-                    }}
-                  >
-                    <Icon name={it.i} size={16} color={t.text} stroke={1.8} />
-                  </div>
-                  <span style={{ flex: 1, fontSize: 14, fontWeight: 500 }}>{it.l}</span>
-                  <span style={{ fontSize: 12, color: t.textSec, marginRight: 6 }}>{it.s}</span>
-                  <Icon name="forward" size={12} color={t.textTer} stroke={2} />
-                </button>
-              ))}
+              <Icon name="machine" size={12} color={t.textSec} stroke={1.8} />
+              SAUCEIN v2.4.1
             </div>
           </div>
+
         </div>
         <TabBar t={t} active="me" />
       </div>
@@ -220,25 +247,104 @@ export function MeScreen({ t }) {
   );
 }
 
-function StatBlock({ t, value, label }) {
+// Bottle: small rounded rectangle with fill rising from the bottom.
+// White/cream fills get a thin top border so they don't merge with the
+// bottle body. Low-stock (<40%) gets a pink inset ring.
+function Bottle({ t, s }) {
+  const low = s.remain < 40;
+  const palePour = ['#FFFFFF', '#F2EAD8', '#EEEDE6'].includes(s.color);
   return (
-    <div style={{ flex: 1, textAlign: 'center' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
       <div
         style={{
-          fontSize: 20, fontWeight: 700, letterSpacing: -0.3,
-          fontVariantNumeric: 'tabular-nums',
+          width: '100%', height: 48,
+          background: '#FFFFFF',
+          borderRadius: '6px 6px 4px 4px',
+          border: '1px solid rgba(0,0,0,0.06)',
+          position: 'relative', overflow: 'hidden',
         }}
       >
-        {value}
+        <div
+          style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0,
+            height: `${s.remain}%`,
+            background: s.color, opacity: 0.9,
+            borderTop: palePour ? '1px solid rgba(0,0,0,0.08)' : 'none',
+          }}
+        />
+        {low && (
+          <div
+            style={{
+              position: 'absolute', inset: 0,
+              borderRadius: '6px 6px 4px 4px',
+              boxShadow: `inset 0 0 0 1.5px ${t.accent}`,
+              pointerEvents: 'none',
+            }}
+          />
+        )}
       </div>
       <div
         style={{
-          fontSize: 11, color: t.textSec, marginTop: 2,
-          letterSpacing: 0.3, fontWeight: 500,
+          fontSize: 9, color: low ? t.accent : t.textTer,
+          fontWeight: low ? 700 : 500,
+          fontVariantNumeric: 'tabular-nums', letterSpacing: 0.1,
         }}
       >
-        {label}
+        {s.remain}
       </div>
+    </div>
+  );
+}
+
+function ActionCard({ t, icon, title, sub, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        ...glass("card"), borderRadius: 16, border: `0.5px solid ${t.line}`,
+        padding: '14px 14px 12px',
+        display: 'flex', flexDirection: 'column', gap: 18,
+        minHeight: 92,
+        textAlign: 'left', cursor: onClick ? 'pointer' : 'default',
+        fontFamily: t.font, color: t.text,
+      }}
+    >
+      <div
+        style={{
+          width: 32, height: 32, borderRadius: 10,
+          ...glass("softer"),
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <Icon name={icon} size={17} color={t.text} stroke={1.7} />
+      </div>
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: -0.2 }}>{title}</div>
+        <div
+          style={{
+            fontSize: 11, color: t.textSec, marginTop: 3, letterSpacing: 0.1,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}
+        >
+          {sub}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function SubStat({ n, lab }) {
+  return (
+    <div style={{ flex: 1 }}>
+      <div
+        style={{
+          fontSize: 20, fontWeight: 700, letterSpacing: -0.4,
+          fontVariantNumeric: 'tabular-nums', color: '#fff',
+        }}
+      >
+        {n}
+      </div>
+      <div style={{ fontSize: 11, opacity: 0.7, marginTop: 1, color: '#fff' }}>{lab}</div>
     </div>
   );
 }
