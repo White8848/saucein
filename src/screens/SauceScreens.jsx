@@ -7,20 +7,32 @@ import { TabBar } from '../components/TabBar.jsx';
 import { Icon } from '../lib/Icon.jsx';
 import { SEASONINGS, YUXIANG_RATIO } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
+import { useLocalStorage } from '../lib/storage.js';
 import { glass, pinkBg } from '../lib/theme.js';
+import { useToast } from '../lib/toast.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // Sauce Library
 // ─────────────────────────────────────────────────────────────
 export function SauceLibraryScreen({ t }) {
   const nav = useNav();
-  const sauces = [
+  const allSauces = [
     { name: '鱼香汁',     sub: '咸甜微辣 · 经典川味', colors: ['#5B3B1F', '#7B3F2C', '#F2EAD8', '#C9A86A', '#C53A1A'], used: 12, last: '2 天前', mine: false },
     { name: '泰式甜辣',   sub: '酸甜带椒香',          colors: ['#F2EAD8', '#C9A86A', '#C53A1A', '#7B3F2C'],             used: 3,  last: '上周',   mine: true  },
     { name: '葱姜蘸料',   sub: '清淡蘸白切',          colors: ['#B07A2C', '#FFFFFF', '#3A2412'],                         used: 8,  last: '昨天',   mine: false },
     { name: '麻辣红油',   sub: '香辣开胃',            colors: ['#C53A1A', '#7B3F2C', '#2C1810', '#B07A2C'],             used: 5,  last: '4 天前', mine: false },
     { name: '老醋汁',     sub: '酸鲜微甜',            colors: ['#7B3F2C', '#5B3B1F', '#F2EAD8'],                         used: 2,  last: '上月',   mine: true  },
   ];
+  const [tab, setTab] = useState('all');
+  const tabs = [
+    { key: 'all',    label: '全部',     filter: () => true       },
+    { key: 'system', label: '系统配方', filter: (s) => !s.mine   },
+    { key: 'mine',   label: '我创建的', filter: (s) =>  s.mine   },
+  ];
+  const visible = allSauces.filter(tabs.find((x) => x.key === tab).filter);
+  const featured = allSauces[0]; // 鱼香汁 always pinned at top
+  const showFeatured = tab !== 'mine';
+  const listItems = showFeatured ? visible.filter((s) => s !== featured) : visible;
 
   return (
     <PhoneFrame t={t} screen="11 酱料库 Library">
@@ -56,143 +68,160 @@ export function SauceLibraryScreen({ t }) {
               borderBottom: `0.5px solid ${t.lineSoft}`,
             }}
           >
-            {['全部 5', '系统配方 3', '我创建的 2'].map((tab, i) => (
-              <div
-                key={tab}
-                style={{
-                  padding: '8px 0 12px',
-                  borderBottom: i === 0 ? `2px solid ${t.text}` : 'none',
-                  fontSize: 13, fontWeight: i === 0 ? 600 : 500,
-                  color: i === 0 ? t.text : t.textSec,
-                  letterSpacing: -0.1,
-                }}
-              >
-                {tab}
-              </div>
-            ))}
+            {tabs.map((it) => {
+              const on = tab === it.key;
+              const count = allSauces.filter(it.filter).length;
+              return (
+                <button
+                  key={it.key}
+                  onClick={() => setTab(it.key)}
+                  style={{
+                    padding: '8px 0 12px',
+                    borderTop: 'none', borderRight: 'none', borderLeft: 'none',
+                    borderBottom: on ? `2px solid ${t.text}` : '2px solid transparent',
+                    background: 'transparent',
+                    fontSize: 13, fontWeight: on ? 600 : 500,
+                    color: on ? t.text : t.textSec,
+                    letterSpacing: -0.1,
+                    transition: 'color 0.18s ease, border-color 0.18s ease',
+                    fontFamily: t.font,
+                  }}
+                >
+                  {it.label} {count}
+                </button>
+              );
+            })}
           </div>
 
-          {/* most used (big dark card) */}
-          <div style={{ padding: '20px 20px 0' }}>
-            <div style={{ fontSize: 11, color: t.textSec, letterSpacing: 0.4, fontWeight: 600, marginBottom: 10 }}>
-              常用
-            </div>
-            <div
-              style={{
-                padding: 18, background: t.text, color: t.bg, borderRadius: 20,
-                position: 'relative', overflow: 'hidden',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.4 }}>{sauces[0].name}</div>
-                  <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>{sauces[0].sub}</div>
-                </div>
-                <Icon name="heart-f" size={20} color={t.accent} />
-              </div>
-              <div style={{ marginTop: 16, height: 8, borderRadius: 100, display: 'flex', overflow: 'hidden' }}>
-                {sauces[0].colors.map((c, i) => (
-                  <div key={i} style={{ flex: 1, background: c }} />
-                ))}
+          {/* most used (big dark card) — featured 鱼香汁 unless on "mine" tab */}
+          {showFeatured && (
+            <div style={{ padding: '20px 20px 0' }}>
+              <div style={{ fontSize: 11, color: t.textSec, letterSpacing: 0.4, fontWeight: 600, marginBottom: 10 }}>
+                常用
               </div>
               <div
                 style={{
-                  marginTop: 14,
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: 18, background: t.text, color: t.bg, borderRadius: 20,
+                  position: 'relative', overflow: 'hidden',
                 }}
               >
-                <div style={{ fontSize: 11, opacity: 0.65, letterSpacing: 0.3 }}>
-                  用过 {sauces[0].used} 次 · {sauces[0].last}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.4 }}>{featured.name}</div>
+                    <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>{featured.sub}</div>
+                  </div>
+                  <Icon name="heart-f" size={20} color={t.accent} />
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => nav.push('ratio')}
-                    style={{
-                      padding: '6px 12px', borderRadius: 100,
-                      background: 'rgba(255,255,255,0.15)',
-                      color: 'inherit',
-                      fontSize: 12, fontWeight: 600,
-                      border: 'none', cursor: 'pointer', fontFamily: t.font,
-                    }}
-                  >
-                    调整
-                  </button>
-                  <button
-                    onClick={() => nav.push('dispense')}
-                    style={{
-                      padding: '6px 12px', borderRadius: 100,
-                      ...pinkBg, color: t.accentText,
-                      fontSize: 12, fontWeight: 600,
-                      border: 'none', cursor: 'pointer', fontFamily: t.font,
-                    }}
-                  >
-                    调一份
-                  </button>
+                <div style={{ marginTop: 16, height: 8, borderRadius: 100, display: 'flex', overflow: 'hidden' }}>
+                  {featured.colors.map((c, i) => (
+                    <div key={i} style={{ flex: 1, background: c }} />
+                  ))}
+                </div>
+                <div
+                  style={{
+                    marginTop: 14,
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  }}
+                >
+                  <div style={{ fontSize: 11, opacity: 0.65, letterSpacing: 0.3 }}>
+                    用过 {featured.used} 次 · {featured.last}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => nav.push('ratio')}
+                      style={{
+                        padding: '6px 12px', borderRadius: 100,
+                        background: 'rgba(255,255,255,0.15)',
+                        color: 'inherit',
+                        fontSize: 12, fontWeight: 600,
+                        border: 'none', fontFamily: t.font,
+                      }}
+                    >
+                      调整
+                    </button>
+                    <button
+                      onClick={() => nav.push('dispense')}
+                      style={{
+                        padding: '6px 12px', borderRadius: 100,
+                        ...pinkBg, color: t.accentText,
+                        fontSize: 12, fontWeight: 600,
+                        border: 'none', fontFamily: t.font,
+                      }}
+                    >
+                      调一份
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* list */}
           <div style={{ padding: '20px 20px 0' }}>
             <div style={{ fontSize: 11, color: t.textSec, letterSpacing: 0.4, fontWeight: 600, marginBottom: 10 }}>
-              全部
+              {tab === 'mine' ? '我创建的' : '全部'}
             </div>
-            <div
-              style={{
-                ...glass("card"), border: `0.5px solid ${t.line}`,
-                borderRadius: 16, padding: '6px 0',
-              }}
-            >
-              {sauces.slice(1).map((s, i, arr) => (
-                <button
-                  key={s.name}
-                  onClick={() => nav.push('ratio')}
-                  style={{
-                    width: '100%',
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '14px 16px',
-                    borderTop: 'none', borderRight: 'none', borderLeft: 'none',
-                    borderBottom: i === arr.length - 1 ? 'none' : `0.5px solid ${t.lineSoft}`,
-                    background: 'transparent', cursor: 'pointer',
-                    textAlign: 'left', fontFamily: t.font, color: t.text,
-                  }}
-                >
-                  <div
+            {listItems.length === 0 ? (
+              <div style={{ padding: '32px 0', textAlign: 'center', color: t.textSec, fontSize: 13 }}>
+                还没有配方
+              </div>
+            ) : (
+              <div
+                style={{
+                  ...glass("card"), border: `0.5px solid ${t.line}`,
+                  borderRadius: 16, padding: '6px 0',
+                }}
+              >
+                {listItems.map((s, i, arr) => (
+                  <button
+                    key={s.name}
+                    onClick={() => nav.push('ratio')}
                     style={{
-                      width: 44, height: 44, borderRadius: 22, overflow: 'hidden',
-                      display: 'flex', flexShrink: 0,
-                      border: `0.5px solid ${t.line}`,
+                      width: '100%',
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '14px 16px',
+                      borderTop: 'none', borderRight: 'none', borderLeft: 'none',
+                      borderBottom: i === arr.length - 1 ? 'none' : `0.5px solid ${t.lineSoft}`,
+                      background: 'transparent',
+                      textAlign: 'left', fontFamily: t.font, color: t.text,
                     }}
                   >
-                    {s.colors.map((c, ci) => (
-                      <div key={ci} style={{ flex: 1, background: c }} />
-                    ))}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: -0.2 }}>{s.name}</span>
-                      {s.mine && (
-                        <span
-                          style={{
-                            fontSize: 9, color: t.accent,
-                            padding: '2px 5px',
-                            background: t.accentSoft, borderRadius: 4,
-                            fontWeight: 600, letterSpacing: 0.3,
-                          }}
-                        >
-                          MY
-                        </span>
-                      )}
+                    <div
+                      style={{
+                        width: 44, height: 44, borderRadius: 22, overflow: 'hidden',
+                        display: 'flex', flexShrink: 0,
+                        border: `0.5px solid ${t.line}`,
+                      }}
+                    >
+                      {s.colors.map((c, ci) => (
+                        <div key={ci} style={{ flex: 1, background: c }} />
+                      ))}
                     </div>
-                    <div style={{ fontSize: 11, color: t.textSec, marginTop: 2 }}>
-                      {s.sub} · 用过 {s.used} 次
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: -0.2 }}>{s.name}</span>
+                        {s.mine && (
+                          <span
+                            style={{
+                              fontSize: 9, color: t.accent,
+                              padding: '2px 5px',
+                              background: t.accentSoft, borderRadius: 4,
+                              fontWeight: 600, letterSpacing: 0.3,
+                            }}
+                          >
+                            MY
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11, color: t.textSec, marginTop: 2 }}>
+                        {s.sub} · 用过 {s.used} 次
+                      </div>
                     </div>
-                  </div>
-                  <Icon name="forward" size={12} color={t.textTer} stroke={2} />
-                </button>
-              ))}
-            </div>
+                    <Icon name="forward" size={12} color={t.textTer} stroke={2} />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         <TabBar t={t} active="sauce" />
@@ -812,6 +841,29 @@ export function DispensingScreen({ t }) {
 // ─────────────────────────────────────────────────────────────
 export function SaveSauceScreen({ t }) {
   const nav = useNav();
+  const toast = useToast();
+  const TAG_ALL = ['咸甜', '微辣', '下饭', '酸甜', '麻辣', '清淡', '蘸料'];
+  const [, setSavedSauces] = useLocalStorage('savedSauces', []);
+  const [name, setName] = useState('老陈版鱼香汁');
+  const [tags, setTags] = useState(new Set(['咸甜', '微辣', '下饭']));
+  const [focused, setFocused] = useState(false);
+  const toggleTag = (tag) =>
+    setTags((s) => {
+      const next = new Set(s);
+      next.has(tag) ? next.delete(tag) : next.add(tag);
+      return next;
+    });
+  const onSave = () => {
+    const safeName = (name || '').trim() || '我的酱料';
+    setSavedSauces((xs) => [
+      ...xs,
+      { name: safeName, tags: Array.from(tags), ratio: YUXIANG_RATIO, savedAt: Date.now() },
+    ]);
+    nav.closeModal();
+    nav.jump('library');
+    toast(`已保存「${safeName}」`, { tone: 'accent' });
+  };
+
   return (
     <PhoneFrame t={t} screen="20 保存酱料 Save">
       {/* ratio screen ghost behind */}
@@ -832,7 +884,7 @@ export function SaveSauceScreen({ t }) {
         aria-label="关闭"
         style={{
           position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 5,
-          border: 'none', cursor: 'pointer', padding: 0,
+          border: 'none', padding: 0,
         }}
       />
 
@@ -846,9 +898,17 @@ export function SaveSauceScreen({ t }) {
           boxShadow: '0 -8px 32px rgba(0,0,0,0.18)',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+        {/* pull handle — tap to dismiss too */}
+        <button
+          onClick={nav.closeModal}
+          aria-label="下拉关闭"
+          style={{
+            display: 'flex', justifyContent: 'center', marginBottom: 14,
+            background: 'transparent', border: 'none', padding: 0, width: '100%',
+          }}
+        >
           <div style={{ width: 40, height: 4, borderRadius: 2, background: t.line }} />
-        </div>
+        </button>
 
         <div style={{ fontSize: 22, fontWeight: t.titleWeight, letterSpacing: -0.4, lineHeight: 1.2 }}>
           保存为我的配方
@@ -879,11 +939,11 @@ export function SaveSauceScreen({ t }) {
           >
             <span>总量 71 g</span>
             <span>6 种调料</span>
-            <span>咸甜微辣</span>
+            <span>{Array.from(tags).slice(0, 2).join(' · ') || '自定义'}</span>
           </div>
         </div>
 
-        {/* input */}
+        {/* input — real <input>, pink border + animated caret kicks in on focus */}
         <div style={{ marginTop: 18 }}>
           <div
             style={{
@@ -896,23 +956,36 @@ export function SaveSauceScreen({ t }) {
           <div
             style={{
               height: 48, borderRadius: 12, ...glass("card"),
-              border: `1.5px solid ${t.accent}`,
+              border: `1.5px solid ${focused ? t.accent : t.line}`,
               padding: '0 14px',
               display: 'flex', alignItems: 'center',
-              fontSize: 15, fontWeight: 500,
+              transition: 'border-color 0.2s ease',
             }}
           >
-            老陈版鱼香汁
-            <span
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              placeholder="给酱料起个名字"
               style={{
-                width: 2, height: 18, ...pinkBg,
-                marginLeft: 2, animation: 'caretBlink 1s steps(2) infinite',
+                flex: 1, minWidth: 0,
+                background: 'transparent', border: 'none', outline: 'none',
+                fontSize: 15, fontWeight: 500, color: t.text, fontFamily: t.font,
               }}
             />
+            {focused && (
+              <span
+                style={{
+                  width: 2, height: 18, ...pinkBg,
+                  marginLeft: 2, animation: 'caretBlink 1s steps(2) infinite',
+                }}
+              />
+            )}
           </div>
         </div>
 
-        {/* tags */}
+        {/* tags — multi-select; Set-backed */}
         <div style={{ marginTop: 16 }}>
           <div
             style={{
@@ -923,25 +996,26 @@ export function SaveSauceScreen({ t }) {
             标签 (可选)
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {[
-              { l: '咸甜', on: true },
-              { l: '微辣', on: true },
-              { l: '下饭', on: true },
-              { l: '酸甜' }, { l: '麻辣' }, { l: '清淡' }, { l: '蘸料' },
-            ].map((c) => (
-              <div
-                key={c.l}
-                style={{
-                  padding: '6px 12px', borderRadius: 100,
-                  background: c.on ? t.text : 'transparent',
-                  color: c.on ? t.bg : t.text,
-                  border: c.on ? 'none' : `0.5px solid ${t.line}`,
-                  fontSize: 12, fontWeight: 500,
-                }}
-              >
-                {c.on ? '✓ ' : ''}{c.l}
-              </div>
-            ))}
+            {TAG_ALL.map((tag) => {
+              const on = tags.has(tag);
+              return (
+                <button
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
+                  className="chip"
+                  style={{
+                    padding: '6px 12px', borderRadius: 100,
+                    background: on ? t.text : 'transparent',
+                    color: on ? t.bg : t.text,
+                    border: on ? 'none' : `0.5px solid ${t.line}`,
+                    fontSize: 12, fontWeight: 500,
+                    fontFamily: t.font,
+                  }}
+                >
+                  {on ? '✓ ' : ''}{tag}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -952,18 +1026,16 @@ export function SaveSauceScreen({ t }) {
               flex: 1, height: 52, borderRadius: 14,
               border: `0.5px solid ${t.line}`, background: 'transparent',
               color: t.text, fontSize: 15, fontWeight: 600, fontFamily: t.font,
-              cursor: 'pointer',
             }}
           >
             取消
           </button>
           <button
-            onClick={() => { nav.closeModal(); nav.jump('library'); }}
+            onClick={onSave}
             style={{
               flex: 1.4, height: 52, borderRadius: 14, border: 'none',
               ...pinkBg, color: t.accentText,
               fontSize: 15, fontWeight: 600, fontFamily: t.font,
-              cursor: 'pointer',
             }}
           >
             保存到酱料库

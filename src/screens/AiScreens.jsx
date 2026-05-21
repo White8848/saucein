@@ -8,8 +8,10 @@ import { Icon } from '../lib/Icon.jsx';
 import { heroBg } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
 import { useRecipes } from "../lib/recipes.jsx";
+import { useLocalStorage } from '../lib/storage.js';
 import { glass, pinkBg } from '../lib/theme.js';
 import { chat } from '../lib/ai.js';
+import { useToast } from '../lib/toast.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // AI Chat — full conversation with the chef
@@ -456,9 +458,64 @@ export function AiRecommendScreen({ t }) {
 // ─────────────────────────────────────────────────────────────
 // AI Step — guided cooking
 // ─────────────────────────────────────────────────────────────
+// Six guided steps for 鱼香肉丝 — step 3 matches the original design;
+// the other five are written in the same voice. Counter, progress, and
+// content all derive from `step` so prev/next genuinely walk the user.
+const COOKING_STEPS = [
+  {
+    title: '腌制肉丝',
+    body: '里脊肉切丝, 加 1 勺料酒 + 一撮淀粉, 用手抓匀, 静置 10 分钟。',
+    heat: '冷盘',
+    timer: '10:00',
+    tip: '上浆后下锅不易粘连, 滑炒口感更嫩。',
+  },
+  {
+    title: '配料切丝',
+    body: '木耳泡发切丝, 胡萝卜与青笋切均匀的细丝, 蒜蒜末备用。',
+    heat: '准备',
+    timer: '4:00',
+    tip: '所有食材切到同等粗细, 受热才能均匀。',
+  },
+  {
+    title: '倒入肉丝, 滑炒至变色',
+    body: '油温六成热, 沿锅边滑入腌好的肉丝。用筷子快速拨散, 避免成团。',
+    heat: '中火',
+    timer: '1:30',
+    tip: '听见持续的吱啦声就对了 — 这是水分被锁住的信号。变色立刻盛出。',
+  },
+  {
+    title: '下配料翻炒',
+    body: '原锅留底油, 爆香蒜末, 下木耳、胡萝卜、青笋, 大火翻炒 1 分钟。',
+    heat: '大火',
+    timer: '1:00',
+    tip: '配料先下, 让锅气把香味裹住, 再回锅肉丝。',
+  },
+  {
+    title: '倒入鱼香汁勾芡',
+    body: '把肉丝回锅, 沿锅边淋入调味机调好的鱼香汁, 翻匀至挂芡。',
+    heat: '中火',
+    timer: '0:40',
+    tip: '芡汁要边淋边翻, 见到酱汁变亮就关火。',
+  },
+  {
+    title: '装盘',
+    body: '出锅, 盛入盘中, 撒一点葱花点缀, 立即上桌。',
+    heat: '关火',
+    timer: '0:20',
+    tip: '热气在的时候吃最香 — 这步别等。',
+  },
+];
+
 export function AiStepScreen({ t }) {
   const nav = useNav();
-  const { recipes } = useRecipes();
+  // step is 1-based to match "{step}/6" in the design.
+  const [step, setStep] = useState(1);
+  const total = COOKING_STEPS.length;
+  const cur = COOKING_STEPS[step - 1];
+  const pct = (step / total) * 100;
+  const onPrev = () => (step > 1 ? setStep(step - 1) : nav.pop());
+  const onNext = () => (step < total ? setStep(step + 1) : nav.push('complete'));
+
   return (
     <PhoneFrame t={t} screen="07 引导烹饪 Step">
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -470,13 +527,20 @@ export function AiStepScreen({ t }) {
               引导式烹饪 · 鱼香肉丝
             </div>
           </div>
-          <div style={{ fontSize: 12, color: t.text, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>3 / 6</div>
+          <div style={{ fontSize: 12, color: t.text, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+            {step} / {total}
+          </div>
         </div>
 
         {/* progress */}
         <div style={{ padding: '0 20px 16px' }}>
           <div style={{ height: 3, ...glass("soft"), borderRadius: 2, overflow: 'hidden' }}>
-            <div style={{ width: '50%', height: '100%', background: t.accent }} />
+            <div
+              style={{
+                width: `${pct}%`, height: '100%', ...pinkBg,
+                transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+            />
           </div>
         </div>
 
@@ -505,7 +569,7 @@ export function AiStepScreen({ t }) {
               }}
             >
               <Icon name="flame" size={12} color="#fff" stroke={2} />
-              中火
+              {cur.heat}
             </div>
           </div>
         </div>
@@ -513,13 +577,13 @@ export function AiStepScreen({ t }) {
         {/* step text */}
         <div style={{ padding: '20px 20px 0', flex: 1 }}>
           <div style={{ fontSize: 12, color: t.accent, fontWeight: 600, letterSpacing: 0.5, marginBottom: 6 }}>
-            STEP 03
+            STEP {String(step).padStart(2, '0')}
           </div>
           <div style={{ fontSize: 24, fontWeight: t.titleWeight, letterSpacing: -0.5, lineHeight: 1.2, marginBottom: 10 }}>
-            倒入肉丝, 滑炒至变色
+            {cur.title}
           </div>
           <div style={{ fontSize: 14, color: t.textSec, lineHeight: 1.55 }}>
-            油温六成热, 沿锅边滑入腌好的肉丝。用筷子快速拨散, 避免成团。
+            {cur.body}
           </div>
 
           {/* timer + AI button */}
@@ -543,21 +607,23 @@ export function AiStepScreen({ t }) {
               <div>
                 <div style={{ fontSize: 10, color: t.textSec, fontWeight: 500, letterSpacing: 0.3 }}>预计时长</div>
                 <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums' }}>
-                  1:30
+                  {cur.timer}
                 </div>
               </div>
             </div>
-            <div
+            <button
+              onClick={() => nav.push('chat')}
               style={{
                 padding: '0 14px', borderRadius: 14,
                 background: t.accentSoft, color: t.accent,
                 display: 'flex', alignItems: 'center', gap: 6,
                 fontSize: 12, fontWeight: 600,
+                border: 'none', fontFamily: t.font,
               }}
             >
               <Icon name="sparkle" size={14} color={t.accent} stroke={2} />
               问 AI
-            </div>
+            </button>
           </div>
 
           {/* tip */}
@@ -580,7 +646,7 @@ export function AiStepScreen({ t }) {
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 11, color: t.accent, fontWeight: 600, letterSpacing: 0.4 }}>陈师傅提示</div>
               <div style={{ fontSize: 13, color: t.text, lineHeight: 1.5, marginTop: 3 }}>
-                听见持续的吱啦声就对了 — 这是水分被锁住的信号。变色立刻盛出。
+                {cur.tip}
               </div>
             </div>
           </div>
@@ -596,28 +662,27 @@ export function AiStepScreen({ t }) {
           }}
         >
           <button
-            onClick={nav.pop}
+            onClick={onPrev}
             style={{
               height: 52, padding: '0 22px', borderRadius: 14,
               border: `0.5px solid ${t.line}`, background: 'transparent',
               color: t.text, fontSize: 15, fontWeight: 500, fontFamily: t.font,
-              display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
             }}
           >
             <Icon name="back" size={16} color={t.text} stroke={2} />
             上一步
           </button>
           <button
-            onClick={() => nav.push('complete')}
+            onClick={onNext}
             style={{
               flex: 1, height: 52, borderRadius: 14, border: 'none',
               ...pinkBg, color: t.accentText,
               fontSize: 15, fontWeight: 600, fontFamily: t.font,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              cursor: 'pointer',
             }}
           >
-            完成, 下一步
+            {step < total ? '完成, 下一步' : '完成烹饪'}
             <Icon name="forward" size={16} color={t.accentText} stroke={2} />
           </button>
         </div>
@@ -634,7 +699,22 @@ export function AiStepScreen({ t }) {
 export function CompleteScreen({ t }) {
   const nav = useNav();
   const { recipes } = useRecipes();
+  const toast = useToast();
   const r = recipes[0];
+  const [rating, setRating] = useState(4);
+  const [feedback, setFeedback] = useState('正好');
+  const [favIds, setFavIds] = useLocalStorage('favorites', []);
+  const isFav = !!r && favIds.includes(r.id);
+  const toggleFav = () => {
+    if (!r) return;
+    if (isFav) {
+      setFavIds((xs) => xs.filter((x) => x !== r.id));
+      toast('已取消收藏');
+    } else {
+      setFavIds((xs) => [...xs, r.id]);
+      toast('已加入我的酱料库', { tone: 'accent' });
+    }
+  };
   return (
     <PhoneFrame t={t} screen="08 烹饪完成 Complete">
       <div style={{ height: '100%', padding: 0, display: 'flex', flexDirection: 'column' }}>
@@ -707,27 +787,46 @@ export function CompleteScreen({ t }) {
               这次味道怎么样 ?
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} style={{ color: i <= 4 ? t.accent : t.line }}>
-                  <Icon name="star" size={32} color={i <= 4 ? t.accent : t.line} stroke={2} />
-                </div>
-              ))}
+              {[1, 2, 3, 4, 5].map((i) => {
+                const lit = i <= rating;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setRating(i)}
+                    aria-label={`${i} 星`}
+                    style={{
+                      background: 'transparent', border: 'none', padding: 0,
+                      color: lit ? t.accent : t.line,
+                      transition: 'color 0.18s ease, transform 0.15s ease',
+                      transform: lit ? 'scale(1)' : 'scale(0.94)',
+                    }}
+                  >
+                    <Icon name="star" size={32} color={lit ? t.accent : t.line} stroke={2} />
+                  </button>
+                );
+              })}
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
-              {['咸了一点', '正好', '甜了', '辣了', '可以再快点'].map((c, i) => (
-                <div
-                  key={c}
-                  style={{
-                    padding: '6px 12px', borderRadius: 100,
-                    background: i === 1 ? t.text : 'transparent',
-                    color: i === 1 ? t.bg : t.textSec,
-                    border: i === 1 ? 'none' : `0.5px solid ${t.line}`,
-                    fontSize: 12, fontWeight: 500,
-                  }}
-                >
-                  {c}
-                </div>
-              ))}
+              {['咸了一点', '正好', '甜了', '辣了', '可以再快点'].map((c) => {
+                const on = feedback === c;
+                return (
+                  <button
+                    key={c}
+                    onClick={() => setFeedback(on ? null : c)}
+                    className="chip"
+                    style={{
+                      padding: '6px 12px', borderRadius: 100,
+                      background: on ? t.text : 'transparent',
+                      color: on ? t.bg : t.textSec,
+                      border: on ? 'none' : `0.5px solid ${t.line}`,
+                      fontSize: 12, fontWeight: 500,
+                      fontFamily: t.font,
+                    }}
+                  >
+                    {c}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -736,17 +835,24 @@ export function CompleteScreen({ t }) {
           {/* actions */}
           <div style={{ padding: '0 0 32px', display: 'flex', gap: 10 }}>
             <button
-              onClick={() => nav.push('library')}
+              onClick={toggleFav}
               style={{
                 flex: 1, height: 52, borderRadius: 14,
-                border: `0.5px solid ${t.line}`, background: 'transparent',
-                color: t.text, fontSize: 14, fontWeight: 600, fontFamily: t.font,
+                border: isFav ? 'none' : `0.5px solid ${t.line}`,
+                background: isFav ? t.accentSoft : 'transparent',
+                color: isFav ? t.accent : t.text,
+                fontSize: 14, fontWeight: 600, fontFamily: t.font,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                cursor: 'pointer',
+                transition: 'background 0.2s ease, color 0.2s ease',
               }}
             >
-              <Icon name="heart" size={16} color={t.text} stroke={1.8} />
-              收藏配方
+              <Icon
+                name={isFav ? 'heart-f' : 'heart'}
+                size={16}
+                color={isFav ? t.accent : t.text}
+                stroke={1.8}
+              />
+              {isFav ? '已收藏' : '收藏配方'}
             </button>
             <button
               onClick={() => nav.setTab('home')}

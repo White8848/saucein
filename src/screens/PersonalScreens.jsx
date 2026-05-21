@@ -1,6 +1,6 @@
 // Personal area: Me, Device, History, Settings + Shopping list utility.
 
-import { Children } from 'react';
+import { Children, useState } from 'react';
 import { PhoneFrame, HomeIndicator } from '../components/PhoneFrame.jsx';
 import { CircleButton } from '../components/CircleButton.jsx';
 import { TabBar } from '../components/TabBar.jsx';
@@ -10,7 +10,9 @@ import { Icon } from '../lib/Icon.jsx';
 import { SEASONINGS } from '../lib/data.js';
 import { useNav } from '../lib/nav.jsx';
 import { useRecipes } from "../lib/recipes.jsx";
+import { useLocalStorage } from '../lib/storage.js';
 import { glass, pinkBg } from '../lib/theme.js';
+import { useToast } from '../lib/toast.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // Me — editorial profile: hero greeting + monthly highlight +
@@ -354,7 +356,9 @@ function SubStat({ n, lab }) {
 // ─────────────────────────────────────────────────────────────
 export function DeviceDetailScreen({ t }) {
   const nav = useNav();
-  const { recipes } = useRecipes();
+  const toast = useToast();
+  // Local overlay state — which seasoning is being refilled, if any.
+  const [refill, setRefill] = useState(null);
   return (
     <PhoneFrame t={t} screen="15 设备 Device">
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -406,12 +410,14 @@ export function DeviceDetailScreen({ t }) {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {SEASONINGS.map((s, i) => (
-                <div
+                <button
                   key={s.key}
+                  onClick={() => setRefill({ ...s, slot: i + 1 })}
                   style={{
                     ...glass("card"), border: `0.5px solid ${t.line}`,
                     borderRadius: 12, padding: 12,
                     display: 'flex', alignItems: 'center', gap: 10,
+                    textAlign: 'left', fontFamily: t.font, color: t.text,
                   }}
                 >
                   <div
@@ -448,7 +454,7 @@ export function DeviceDetailScreen({ t }) {
                       {s.remain}%
                     </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -496,7 +502,7 @@ export function DeviceDetailScreen({ t }) {
               width: '100%',
               marginTop: 18, padding: '14px 16px', textAlign: 'center',
               fontSize: 13, color: t.accent, fontWeight: 500,
-              background: 'transparent', border: 'none', cursor: 'pointer',
+              background: 'transparent', border: 'none',
               fontFamily: t.font,
             }}
           >
@@ -504,9 +510,124 @@ export function DeviceDetailScreen({ t }) {
           </button>
         </div>
 
+        {refill && (
+          <RefillSheet
+            t={t}
+            s={refill}
+            onClose={() => setRefill(null)}
+            onPick={(action) => {
+              setRefill(null);
+              toast(`${refill.name}・${action === 'refill' ? '已加入补货清单' : '已发送更换指令'}`, { tone: 'accent' });
+            }}
+          />
+        )}
+
         <HomeIndicator t={t} />
       </div>
     </PhoneFrame>
+  );
+}
+
+// Refill bottom-sheet — picks 更换 vs 补充 for a single slot; lives
+// inside DeviceDetailScreen because the modal needs the slot it was
+// summoned for and we don't want to pollute the global nav modal stack.
+function RefillSheet({ t, s, onClose, onPick }) {
+  const low = s.remain < 40;
+  return (
+    <>
+      <button
+        onClick={onClose}
+        aria-label="关闭"
+        style={{
+          position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 40,
+          border: 'none', padding: 0,
+          animation: 'route-in 0.2s ease',
+        }}
+      />
+      <div
+        className="anim-bubble-in"
+        style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 41,
+          background: t.bg,
+          borderTopLeftRadius: 28, borderTopRightRadius: 28,
+          padding: '12px 24px 36px',
+          boxShadow: '0 -8px 32px rgba(0,0,0,0.18)',
+        }}
+      >
+        <button
+          onClick={onClose}
+          aria-label="下拉关闭"
+          style={{
+            display: 'flex', justifyContent: 'center', marginBottom: 14,
+            background: 'transparent', border: 'none', padding: 0, width: '100%',
+          }}
+        >
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: t.line }} />
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div
+            style={{
+              width: 44, height: 64, borderRadius: 6,
+              ...glass("softer"), border: `0.5px solid ${t.line}`,
+              position: 'relative', overflow: 'hidden', flexShrink: 0,
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute', bottom: 0, left: 0, right: 0,
+                height: `${s.remain}%`,
+                background: s.color, opacity: 0.9,
+                borderTop: s.color === '#FFFFFF' ? `0.5px solid ${t.line}` : 'none',
+              }}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11, color: t.textSec, letterSpacing: 0.4, fontWeight: 500 }}>
+              槽 {s.slot} · 当前余量
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 600, letterSpacing: -0.4, marginTop: 2 }}>
+              {s.name}
+            </div>
+            <div
+              style={{
+                fontSize: 13, color: low ? t.accent : t.textSec, fontWeight: 600,
+                marginTop: 4, fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {s.remain}% {low ? '· 偏少, 建议补充' : '· 可用'}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 22, display: 'flex', gap: 10 }}>
+          <button
+            onClick={() => onPick('replace')}
+            style={{
+              flex: 1, height: 52, borderRadius: 14,
+              border: `0.5px solid ${t.line}`, background: 'transparent',
+              color: t.text, fontSize: 15, fontWeight: 600, fontFamily: t.font,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
+          >
+            <Icon name="drop" size={16} color={t.text} stroke={1.8} />
+            更换调料
+          </button>
+          <button
+            onClick={() => onPick('refill')}
+            style={{
+              flex: 1.4, height: 52, borderRadius: 14, border: 'none',
+              ...pinkBg, color: t.accentText,
+              fontSize: 15, fontWeight: 600, fontFamily: t.font,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}
+          >
+            <Icon name="plus" size={16} color={t.accentText} stroke={2.4} />
+            补充库存
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -711,7 +832,14 @@ function Divider({ t }) {
 // ─────────────────────────────────────────────────────────────
 export function SettingsScreen({ t }) {
   const nav = useNav();
-  const { recipes } = useRecipes();
+  const [settings, setSettings] = useLocalStorage('settings', {
+    autoClean: true,
+    lowStockAlert: true,
+    aiSuggest: true,
+    cookTimer: false,
+  });
+  const toggle = (key) => setSettings((s) => ({ ...s, [key]: !s[key] }));
+
   return (
     <PhoneFrame t={t} screen="17 设置 Settings">
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -746,21 +874,21 @@ export function SettingsScreen({ t }) {
           </SettingGroup>
 
           <SettingGroup t={t} label="口味偏好">
-            <SettingRow t={t} l="口味基线"   sub="少辣 · 少盐 · 偏甜" icon="tune"  />
-            <SettingRow t={t} l="避开食材"   sub="芫荽 · 茴香 · 内脏" icon="close" />
-            <SettingRow t={t} l="过敏与忌口" sub="未设置"             icon="heart" />
+            <SettingRow t={t} l="口味基线"   sub="少辣 · 少盐 · 偏甜" icon="tune"  onClick={() => nav.push('taste')} />
+            <SettingRow t={t} l="避开食材"   sub="芫荽 · 茴香 · 内脏" icon="close" onClick={() => nav.push('taste')} />
+            <SettingRow t={t} l="过敏与忌口" sub="未设置"             icon="heart" onClick={() => nav.push('taste')} />
           </SettingGroup>
 
           <SettingGroup t={t} label="调味机">
-            <SettingRow t={t} l="我的设备"    sub="SAUCEIN S1 · 已连接" icon="machine" onClick={() => nav.push('device')} />
-            <SettingRow t={t} l="自动清洁"    toggle={true}             icon="wave"    />
-            <SettingRow t={t} l="出料量校准"  sub="上次 2025/04"        icon="drop"    />
+            <SettingRow t={t} l="我的设备"   sub="SAUCEIN S1 · 已连接" icon="machine" onClick={() => nav.push('device')} />
+            <SettingRow t={t} l="自动清洁"   icon="wave" toggle={settings.autoClean} onToggle={() => toggle('autoClean')} />
+            <SettingRow t={t} l="出料量校准" sub="上次 2025/04"        icon="drop" />
           </SettingGroup>
 
           <SettingGroup t={t} label="通知">
-            <SettingRow t={t} l="调料余量提醒" toggle={true}  icon="flame"   />
-            <SettingRow t={t} l="AI 推荐菜单"  toggle={true}  icon="sparkle" />
-            <SettingRow t={t} l="烹饪计时提醒" toggle={false} icon="clock"   />
+            <SettingRow t={t} l="调料余量提醒" icon="flame"   toggle={settings.lowStockAlert} onToggle={() => toggle('lowStockAlert')} />
+            <SettingRow t={t} l="AI 推荐菜单"  icon="sparkle" toggle={settings.aiSuggest}     onToggle={() => toggle('aiSuggest')}     />
+            <SettingRow t={t} l="烹饪计时提醒" icon="clock"   toggle={settings.cookTimer}     onToggle={() => toggle('cookTimer')}     />
           </SettingGroup>
 
           <SettingGroup t={t} label="关于">
@@ -774,7 +902,7 @@ export function SettingsScreen({ t }) {
               onClick={() => nav.jump('welcome')}
               style={{
                 fontSize: 14, color: t.accent, fontWeight: 500,
-                background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+                background: 'transparent', border: 'none', padding: 0,
                 fontFamily: t.font,
               }}
             >
@@ -822,16 +950,20 @@ function SettingGroup({ t, label, children }) {
   );
 }
 
-function SettingRow({ t, l, sub, icon, lead, toggle, onClick }) {
-  const Wrap = onClick ? 'button' : 'div';
+function SettingRow({ t, l, sub, icon, lead, toggle, onToggle, onClick }) {
+  // Rows with a toggle become buttons that flip the switch; rows with
+  // an explicit onClick navigate; otherwise plain divs.
+  const interactive = onToggle || onClick;
+  const Wrap = interactive ? 'button' : 'div';
+  const handle = onToggle || onClick;
   return (
     <Wrap
-      onClick={onClick}
+      onClick={handle}
       style={{
-        width: onClick ? '100%' : undefined,
+        width: interactive ? '100%' : undefined,
         display: 'flex', alignItems: 'center', padding: '12px 14px', gap: 12,
         background: 'transparent', border: 'none',
-        cursor: onClick ? 'pointer' : 'default',
+        cursor: interactive ? 'pointer' : 'default',
         textAlign: 'left', fontFamily: t.font, color: t.text,
       }}
     >
@@ -856,7 +988,7 @@ function SettingRow({ t, l, sub, icon, lead, toggle, onClick }) {
           style={{
             width: 42, height: 26, borderRadius: 13,
             background: toggle ? t.accent : t.line,
-            padding: 2, transition: 'background 0.2s',
+            padding: 2, transition: 'background 0.2s ease',
             position: 'relative',
           }}
         >
@@ -864,7 +996,7 @@ function SettingRow({ t, l, sub, icon, lead, toggle, onClick }) {
             style={{
               width: 22, height: 22, borderRadius: 11, background: '#fff',
               marginLeft: toggle ? 16 : 0,
-              transition: 'margin 0.2s',
+              transition: 'margin 0.2s ease',
               boxShadow: '0 1px 3px rgba(0,0,0,0.18)',
             }}
           />
@@ -881,20 +1013,28 @@ function SettingRow({ t, l, sub, icon, lead, toggle, onClick }) {
 // ─────────────────────────────────────────────────────────────
 export function ShoppingListScreen({ t }) {
   const nav = useNav();
-  const { recipes } = useRecipes();
   const items = {
     生鲜: [
-      { name: '猪里脊',   qty: '250 g', have: false, for: '鱼香肉丝' },
-      { name: '青笋',     qty: '80 g',  have: false, for: '鱼香肉丝' },
-      { name: '木耳 (干)', qty: '15 g',  have: true,  for: '鱼香肉丝' },
-      { name: '柠檬',     qty: '2 个',  have: false, for: '酸辣柠檬虾' },
-      { name: '虾仁',     qty: '300 g', have: false, for: '酸辣柠檬虾' },
+      { name: '猪里脊',   qty: '250 g', for: '鱼香肉丝' },
+      { name: '青笋',     qty: '80 g',  for: '鱼香肉丝' },
+      { name: '木耳 (干)', qty: '15 g',  for: '鱼香肉丝' },
+      { name: '柠檬',     qty: '2 个',  for: '酸辣柠檬虾' },
+      { name: '虾仁',     qty: '300 g', for: '酸辣柠檬虾' },
     ],
     蔬菜: [
-      { name: '蒜苔', qty: '一把', have: false, for: '蒜苔炒肉末' },
-      { name: '黄瓜', qty: '2 根', have: true,  for: '皮蛋拌黄瓜' },
+      { name: '蒜苔', qty: '一把', for: '蒜苔炒肉末' },
+      { name: '黄瓜', qty: '2 根', for: '皮蛋拌黄瓜' },
     ],
   };
+  const all = Object.values(items).flat();
+  // Per-item check state — persisted by name (good enough; names are unique
+  // within this mock list). Seed two as already-bought to match the design.
+  const [checked, setChecked] = useLocalStorage('shopping', { '木耳 (干)': true, '黄瓜': true });
+  const totalCount = all.length;
+  const doneCount = all.filter((it) => checked[it.name]).length;
+  const pct = totalCount === 0 ? 0 : Math.round((doneCount / totalCount) * 100);
+  const toggle = (name) => setChecked((c) => ({ ...c, [name]: !c[name] }));
+
   return (
     <PhoneFrame t={t} screen="19 购物清单 Shopping">
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -939,11 +1079,16 @@ export function ShoppingListScreen({ t }) {
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
-                2 / 7
+                {doneCount} / {totalCount}
               </div>
             </div>
             <div style={{ height: 6, ...glass("soft"), borderRadius: 3, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: '28%', background: t.accent }} />
+              <div
+                style={{
+                  height: '100%', width: `${pct}%`, ...pinkBg,
+                  transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+              />
             </div>
           </div>
 
@@ -964,42 +1109,52 @@ export function ShoppingListScreen({ t }) {
                   borderRadius: 14, padding: '4px 0',
                 }}
               >
-                {list.map((it, i, arr) => (
-                  <div
-                    key={it.name}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '12px 14px',
-                      borderBottom: i === arr.length - 1 ? 'none' : `0.5px solid ${t.lineSoft}`,
-                    }}
-                  >
-                    <div
+                {list.map((it, i, arr) => {
+                  const on = !!checked[it.name];
+                  return (
+                    <button
+                      key={it.name}
+                      onClick={() => toggle(it.name)}
                       style={{
-                        width: 22, height: 22, borderRadius: 6,
-                        background: it.have ? t.success : 'transparent',
-                        border: it.have ? 'none' : `1.5px solid ${t.line}`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0,
+                        width: '100%',
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '12px 14px',
+                        borderTop: 'none', borderRight: 'none', borderLeft: 'none',
+                        borderBottom: i === arr.length - 1 ? 'none' : `0.5px solid ${t.lineSoft}`,
+                        background: 'transparent',
+                        textAlign: 'left', fontFamily: t.font, color: t.text,
                       }}
                     >
-                      {it.have && <Icon name="check" size={12} color="#fff" stroke={2.8} />}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div
                         style={{
-                          fontSize: 14, fontWeight: 500,
-                          textDecoration: it.have ? 'line-through' : 'none',
-                          color: it.have ? t.textTer : t.text,
+                          width: 22, height: 22, borderRadius: 6,
+                          background: on ? t.accent : 'transparent',
+                          border: on ? 'none' : `1.5px solid ${t.line}`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0,
+                          transition: 'background 0.18s ease, border-color 0.18s ease',
                         }}
                       >
-                        {it.name}
+                        {on && <Icon name="check" size={12} color="#fff" stroke={2.8} />}
                       </div>
-                      <div style={{ fontSize: 11, color: t.textSec, marginTop: 2 }}>
-                        {it.qty} · 用于 {it.for}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontSize: 14, fontWeight: 500,
+                            textDecoration: on ? 'line-through' : 'none',
+                            color: on ? t.textTer : t.text,
+                            transition: 'color 0.18s ease',
+                          }}
+                        >
+                          {it.name}
+                        </div>
+                        <div style={{ fontSize: 11, color: t.textSec, marginTop: 2 }}>
+                          {it.qty} · 用于 {it.for}
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           ))}
