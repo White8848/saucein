@@ -1,6 +1,6 @@
 // Recipe list, detail, and search results.
 
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { PhoneFrame, HomeIndicator } from '../components/PhoneFrame.jsx';
 import { CircleButton } from '../components/CircleButton.jsx';
 import { TabBar } from '../components/TabBar.jsx';
@@ -15,24 +15,53 @@ import { glass, pinkBg } from '../lib/theme.js';
 // ─────────────────────────────────────────────────────────────
 // Recipe list (小红书风格)
 // ─────────────────────────────────────────────────────────────
+const PAGE_SIZE = 8;
+
 export function RecipeListScreen({ t }) {
   const nav = useNav();
   const { recipes } = useRecipes();
   const cats = ['全部', '川菜', '家常', '凉菜', '粤菜', '湘菜'];
   const [cat, setCat] = useState('全部');
+  const [visible, setVisible] = useState(PAGE_SIZE);
   const showHero = cat === '全部';
   const filtered = useMemo(
     () => (cat === '全部' ? recipes : recipes.filter((r) => r.category === cat)),
     [recipes, cat],
   );
-  // When hero is showing, the grid shows the "next four" (recipes 1..5);
-  // when filtered, show all matches.
-  const gridItems = showHero ? filtered.slice(1, 5) : filtered;
+  // Grid shows everything below the hero (when on 全部), or the full filtered
+  // set otherwise — paginated via `visible` and an IntersectionObserver
+  // sentinel at the bottom of the list.
+  const fullGrid = showHero ? filtered.slice(1) : filtered;
+  const gridItems = fullGrid.slice(0, visible);
+  const hasMore = fullGrid.length > visible;
+
+  // Reset pagination whenever the user switches category, otherwise the
+  // visible count carries over and feels stuck on the new tab.
+  useEffect(() => {
+    setVisible(PAGE_SIZE);
+  }, [cat]);
+
+  const scrollRef = useRef(null);
+  const sentinelRef = useRef(null);
+  useEffect(() => {
+    if (!hasMore) return;
+    const root = scrollRef.current;
+    const target = sentinelRef.current;
+    if (!root || !target) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) setVisible((v) => v + PAGE_SIZE);
+      },
+      { root, rootMargin: '300px' },
+    );
+    io.observe(target);
+    return () => io.disconnect();
+  }, [hasMore]);
 
   return (
     <PhoneFrame t={t} screen="09 食谱列表 Recipes">
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ flex: 1, overflow: 'auto', paddingBottom: 110 }}>
+        <div ref={scrollRef} style={{ flex: 1, overflow: 'auto', paddingBottom: 110 }}>
           {/* title */}
           <div style={{ padding: '64px 20px 0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -184,6 +213,12 @@ export function RecipeListScreen({ t }) {
                 </button>
               ))}
             </div>
+          )}
+
+          {/* Sentinel: when this scrolls into view (or within 300px of it)
+             the IntersectionObserver bumps `visible` by PAGE_SIZE. */}
+          {hasMore && (
+            <div ref={sentinelRef} style={{ height: 24 }} aria-hidden="true" />
           )}
         </div>
         <TabBar t={t} active="book" />
