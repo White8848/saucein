@@ -1,7 +1,8 @@
 import { Icon } from '../lib/Icon.jsx';
 import { glass, pinkBg } from '../lib/theme.js';
 
-// Design-system cover: palette, type ladder, component preview.
+// Design-system cover: palette tiles, type ladder, component preview.
+// Mirrors the SAUCEIN · 粉系毛玻璃完整版 cover artboard.
 
 export function CoverScreen({ t }) {
   return (
@@ -13,6 +14,7 @@ export function CoverScreen({ t }) {
         padding: '64px 28px 32px',
         boxSizing: 'border-box',
         display: 'flex', flexDirection: 'column',
+        position: 'relative', overflow: 'hidden',
       }}
     >
       <div style={{ fontSize: 11, color: t.textSec, letterSpacing: 1.8, fontWeight: 600 }}>
@@ -27,11 +29,11 @@ export function CoverScreen({ t }) {
           marginTop: 8,
         }}
       >
-        极简<br />厨房感
+        粉系<br />毛玻璃
       </div>
       <div style={{ fontSize: 14, color: t.textSec, marginTop: 14, lineHeight: 1.55 }}>
-        近白底 · 黑字 · 一抹陶土红强调。<br />
-        克制 · 食材为主 · AI 大厨为辅。
+        柔粉底 + 半透白卡 + 玫红强调。<br />
+        女性向 · 视觉柔和 · 仪式感强。
       </div>
 
       {/* palette */}
@@ -41,13 +43,13 @@ export function CoverScreen({ t }) {
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           {[
-            { c: t.bg,     n: '#FAFAF7', l: '底' },
-            { c: t.card,   n: '#FFFFFF', l: '卡片' },
-            { c: t.soft,   n: '#F2F1EC', l: '柔和' },
-            { c: t.text,   n: '#1A1A1A', l: '文字' },
-            { c: t.accent, n: '#C7522A', l: '强调' },
+            { c: '#FFFFFF',                  n: '#FFFFFF',   l: '纯白底' },
+            { c: 'rgba(255,255,255,0.55)',   n: '0.55 white', l: '玻璃卡' },
+            { c: t.text,                     n: '#1F1216',   l: '文字'   },
+            { c: t.accent,                   n: '#EE4A81',   l: '主色'   },
+            { c: t.accent2,                  n: '#2C68ED',   l: '辅色'   },
           ].map((s) => (
-            <div key={s.n} style={{ flex: 1, textAlign: 'center' }}>
+            <div key={s.l} style={{ flex: 1, textAlign: 'center' }}>
               <div
                 style={{
                   height: 48, borderRadius: 6,
@@ -103,12 +105,13 @@ export function CoverScreen({ t }) {
           <div
             style={{
               padding: '0 18px', height: 44, borderRadius: 12,
+              ...glass("card"),
               border: `0.5px solid ${t.line}`,
               display: 'flex', alignItems: 'center',
               fontSize: 14, fontWeight: 500,
             }}
           >
-            次操作
+            玻璃次操作
           </div>
         </div>
         <div style={{ height: 6, borderRadius: 3, ...glass("soft"), position: 'relative' }}>
@@ -124,7 +127,7 @@ export function CoverScreen({ t }) {
               transform: 'translate(-50%, -50%)',
               width: 18, height: 18, borderRadius: 9,
               background: '#fff',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+              boxShadow: '0 2px 6px rgba(238,74,129,0.25)',
             }}
           />
         </div>
@@ -134,8 +137,8 @@ export function CoverScreen({ t }) {
               key={c}
               style={{
                 padding: '6px 12px', borderRadius: 100,
-                background: i === 1 ? t.text : 'transparent',
-                color: i === 1 ? t.bg : t.text,
+                background: i === 1 ? t.text : 'rgba(255,255,255,0.4)',
+                color: i === 1 ? '#fff' : t.text,
                 border: i === 1 ? 'none' : `0.5px solid ${t.line}`,
                 fontSize: 12, fontWeight: 500,
               }}
