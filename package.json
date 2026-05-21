@@ -1,0 +1,20 @@
+{
+  "name": "sauce-machine",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "SAUCEIN · 极简白完整版 — high-fidelity iOS design recreated as a static web demo.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.10"
+  }
+}

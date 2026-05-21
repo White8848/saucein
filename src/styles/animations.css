@@ -1,0 +1,136 @@
+/* App-wide keyframes used by the artboards. */
+
+/* Page reset */
+:root { color-scheme: light; }
+html, body, #root { margin: 0; padding: 0; height: 100%; }
+body {
+  background: #efece7;
+  font-family: "PingFang SC", "HarmonyOS Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #1A1A1A;
+}
+* { box-sizing: border-box; }
+button { font-family: inherit; cursor: pointer; }
+
+/* Progress ring fill — Dispensing screen */
+@keyframes ringFill {
+  0%   { stroke-dashoffset: 490; }
+  100% { stroke-dashoffset: 245; }
+}
+
+/* Liquid drop falling from dispenser tube into bowl — Dispensing */
+@keyframes drip {
+  0%   { transform: translate(-50%, -8px); opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { transform: translate(-50%, 168px); opacity: 0; }
+}
+
+/* Pulsing dot used for "injecting" indicator */
+@keyframes wavePulse {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50%      { opacity: 1;    transform: scale(1.08); }
+}
+
+/* Chat: three-dot typing indicator */
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0);   opacity: 0.35; }
+  30%           { transform: translateY(-4px); opacity: 1; }
+}
+
+/* Bubble entry — visible by default to survive offscreen pauses */
+@keyframes bubbleIn {
+  0%   { opacity: 0.4; transform: translateY(6px); }
+  100% { opacity: 1;   transform: translateY(0); }
+}
+
+/* AI tab button breathing halo */
+@keyframes sm-breath {
+  0%   { box-shadow: 0 0 0 0    var(--sm-breath), 0 0 0 0    var(--sm-breath); opacity: 0.6; }
+  70%  { box-shadow: 0 0 0 10px transparent,      0 0 0 18px transparent;       opacity: 0; }
+  100% { box-shadow: 0 0 0 0    transparent,      0 0 0 0    transparent;       opacity: 0; }
+}
+
+/* Pulsing status dot — "已连接" indicators */
+@keyframes sm-status-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--sm-status, #5A7A3C); opacity: 1;   }
+  60%      { box-shadow: 0 0 0 5px transparent;             opacity: 0.6; }
+}
+
+/* Step list — entry stagger; visibility-safe */
+@keyframes stepIn {
+  0%   { opacity: 0.5; transform: translateX(-4px); }
+  100% { opacity: 1;   transform: translateX(0); }
+}
+
+/* Voice listening — concentric rings (AiVoice) */
+@keyframes voiceRing {
+  0%   { transform: scale(0.85); opacity: 0.55; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+
+@keyframes voiceBar {
+  0%, 100% { transform: scaleY(0.35); }
+  50%      { transform: scaleY(1); }
+}
+
+/* Welcome screen — dispenser drip falling from the pipes */
+@keyframes dropFall {
+  0%   { transform: translate(-50%, -4px); opacity: 0; }
+  15%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translate(-50%, 60px); opacity: 0; }
+}
+
+/* Pairing screen — radar ping (dot scales & fades outward) */
+@keyframes radarPing {
+  0%   { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(2.4); opacity: 0;   }
+}
+
+/* Dispensing screen — wave icon nudging right to suggest flow */
+@keyframes waveShift {
+  0%, 100% { transform: translateX(-1px); }
+  50%      { transform: translateX( 2px); }
+}
+
+/* Bottom-sheet caret blink (SaveSauce input) */
+@keyframes caretBlink {
+  0%, 49%   { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* Whole-screen push transition (mounted screen slides in from the right) */
+@keyframes route-in {
+  0%   { transform: translateX(28px); opacity: 0.4; }
+  100% { transform: translateX(0);    opacity: 1;   }
+}
+
+/* Modal sheet rising from the bottom */
+@keyframes modal-up {
+  0%   { transform: translateY(40px); opacity: 0;   }
+  100% { transform: translateY(0);    opacity: 1;   }
+}
+
+/* ── Helper classes ── */
+.anim-typing-dot {
+  display: inline-block;
+  width: 6px; height: 6px; border-radius: 3px;
+  background: currentColor;
+  animation: typingBounce 1.1s ease-in-out infinite;
+}
+.anim-typing-dot:nth-child(2) { animation-delay: 0.18s; }
+.anim-typing-dot:nth-child(3) { animation-delay: 0.36s; }
+
+.anim-bubble-in   { animation: bubbleIn 0.35s ease-out; }
+.anim-step-in     { animation: stepIn 0.4s ease-out; }
+.anim-ring-fill   { animation: ringFill 2.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.anim-drip        { animation: drip 1.4s cubic-bezier(0.4, 0, 0.7, 1) infinite; }
+.anim-wave-pulse  { animation: wavePulse 1.6s ease-in-out infinite; }
+.anim-voice-ring  { animation: voiceRing 1.8s cubic-bezier(0.2, 0.6, 0.4, 1) infinite; }
+.anim-voice-bar   { animation: voiceBar 0.9s ease-in-out infinite; transform-origin: center; }
+
+.drop-fall   { animation: dropFall 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+.radar-ping  { animation: radarPing 2.2s cubic-bezier(0, 0, 0.2, 1) infinite; }
+.wave-shift  { animation: waveShift 1.4s ease-in-out infinite; }
