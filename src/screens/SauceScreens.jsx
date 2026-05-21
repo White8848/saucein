@@ -5,7 +5,8 @@ import { PhoneFrame, HomeIndicator } from '../components/PhoneFrame.jsx';
 import { CircleButton } from '../components/CircleButton.jsx';
 import { TabBar } from '../components/TabBar.jsx';
 import { Icon } from '../lib/Icon.jsx';
-import { SEASONINGS, SAUCES, TASTE_OF, getSauceById } from '../lib/data.js';
+import { SEASONINGS, SAUCES, TASTE_OF, getSauceById, getRecipeSauce } from '../lib/data.js';
+import { useRecipes } from '../lib/recipes.jsx';
 import { useNav } from '../lib/nav.jsx';
 import { useLocalStorage } from '../lib/storage.js';
 import { glass, pinkBg } from '../lib/theme.js';
@@ -351,7 +352,17 @@ export function SauceLibraryEmptyScreen({ t }) {
 // ─────────────────────────────────────────────────────────────
 export function SauceRatioScreen({ t }) {
   const nav = useNav();
-  const sauce = getSauceById(nav.params.sauceId);
+  const { byId } = useRecipes();
+  // Two ways in: from the recipe detail page (recipeId) or from the user's
+  // sauce library (sauceId). Recipe wins when both are set so deep-linking
+  // a recipe never falls through to the yuxiang default.
+  const recipeId = nav.params.recipeId;
+  const recipe = recipeId ? byId[recipeId] : null;
+  const recipeSauce = recipeId ? getRecipeSauce(recipeId) : null;
+  const sauce = recipeSauce
+    ? { id: recipeId, name: recipeSauce.name, sub: recipeSauce.sub, ratio: recipeSauce.ratio }
+    : getSauceById(nav.params.sauceId);
+  const subtitleLabel = recipe ? recipe.name : `我的${sauce.name}`;
   const [grams, setGrams] = useState(() =>
     Object.fromEntries(sauce.ratio.map((s) => [s.key, s.grams])),
   );
@@ -395,7 +406,7 @@ export function SauceRatioScreen({ t }) {
         <div style={{ flex: 1, overflow: 'auto', padding: '12px 20px 130px' }}>
           <div style={{ marginBottom: 8 }}>
             <div style={{ fontSize: 11, color: t.textSec, letterSpacing: 0.4, fontWeight: 500 }}>
-              正在调整 · 我的{sauce.name}
+              正在调整 · {subtitleLabel}
             </div>
             <div
               style={{
