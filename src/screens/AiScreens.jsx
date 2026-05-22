@@ -999,7 +999,8 @@ export function AiVoiceScreen({ t }) {
   const { byId } = useRecipes();
 
   const [messages, setMessages] = useState([]);
-  const [phase, setPhase] = useState('idle');
+  const [thinking, setThinking] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const [userSaid, setUserSaid] = useState('');
   const [aiText, setAiText] = useState('');
   const [chips, setChips] = useState([]);
@@ -1010,7 +1011,8 @@ export function AiVoiceScreen({ t }) {
   const atLimit = limitReached || turnsUsed >= MAX_TURNS;
 
   async function handleUtterance(textIn) {
-    setPhase('thinking');
+    setThinking(true);
+    setSpeaking(false);
     setUserSaid(textIn);
     setError(null);
     setChips([]);
@@ -1027,8 +1029,9 @@ export function AiVoiceScreen({ t }) {
       // Read the names aloud too — a recipe list is useless if it's silent.
       const names = recipes.map((id) => byId[id]?.name).filter(Boolean);
       const spoken = hasRecipes && names.length ? `${bubble}。${names.join('、')}` : bubble;
-      setPhase('speaking');
-      speak(spoken, { onEnd: () => setPhase('idle') });
+      setThinking(false);
+      setSpeaking(true);
+      speak(spoken, { onEnd: () => setSpeaking(false) });
     } catch (e) {
       if (e instanceof LimitReachedError) {
         setLimitReached(true);
@@ -1036,14 +1039,21 @@ export function AiVoiceScreen({ t }) {
       } else {
         setError(e.message || 'AI 暂时不在状态,稍后再试');
       }
-      setPhase('idle');
+      setThinking(false);
+      setSpeaking(false);
     }
   }
 
   const { listening, interim, start, stop, cancel } = useSpeechRecognition({
     onFinal: handleUtterance,
-    onEmpty: () => setPhase('idle'),
+    onEmpty: () => {},
   });
+
+  // The hook's `listening` is the single source of truth for the mic state;
+  // thinking and speaking are explicit. Deriving `phase` (rather than tracking
+  // it separately) removes the desync that left the orb stuck "listening" when
+  // the recognizer failed to start.
+  const phase = speaking ? 'speaking' : thinking ? 'thinking' : listening ? 'listening' : 'idle';
 
   // Tear down mic + speech if the screen unmounts mid-session.
   useEffect(() => () => {
@@ -1066,21 +1076,21 @@ export function AiVoiceScreen({ t }) {
     setChips([]);
     setError(null);
     setLimitReached(false);
-    setPhase('idle');
+    setThinking(false);
+    setSpeaking(false);
   }
 
   function onMicTap() {
-    if (phase === 'listening') {
-      stop(); // finish the utterance and send
-    } else if (phase === 'speaking') {
+    if (listening) {
+      stop(); // finish the utterance and send now
+    } else if (speaking) {
       cancelSpeech();
-      setPhase('idle');
-    } else if (phase === 'idle' && !atLimit) {
+      setSpeaking(false);
+    } else if (!thinking && !atLimit) {
       setUserSaid('');
       setAiText('');
       setError(null);
       start();
-      setPhase('listening');
     }
   }
 
@@ -1130,7 +1140,7 @@ export function AiVoiceScreen({ t }) {
       : phase === 'thinking' ? userSaid
         : aiText || (atLimit ? '本次语音对话已结束' : '点麦克风,跟陈师傅聊聊');
   const hint =
-    phase === 'listening' ? '说完点一下结束 · 发送'
+    phase === 'listening' ? '说完停顿一下自动发送 · 或点一下结束'
       : phase === 'speaking' ? '点击可打断'
         : phase === 'thinking' ? '⋯'
           : atLimit ? '点右侧按钮开始新对话' : '点麦克风开始说话';
