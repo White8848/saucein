@@ -11,6 +11,9 @@ import { useRecipes, fetchRecipeDetail } from "../lib/recipes.jsx";
 import { useLocalStorage } from '../lib/storage.js';
 import { glass, pinkBg } from '../lib/theme.js';
 import { chat, MAX_TURNS, LimitReachedError } from '../lib/ai.js';
+import {
+  useSpeechRecognition, speak, cancelSpeech, voiceSupported,
+} from '../lib/voice.js';
 import { useToast } from '../lib/toast.jsx';
 
 // ─────────────────────────────────────────────────────────────
@@ -256,7 +259,18 @@ export function AiChatScreen({ t }) {
                   fontFamily: t.font,
                 }}
               />
-              <Icon name="mic" size={20} color={t.textSec} stroke={1.6} />
+              <button
+                type="button"
+                onClick={() => nav.push('voice')}
+                aria-label="语音对话"
+                title="语音对话"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'transparent', border: 'none', cursor: 'pointer', padding: 4,
+                }}
+              >
+                <Icon name="mic" size={20} color={t.textSec} stroke={1.6} />
+              </button>
             </div>
             <button
               type="submit"
@@ -974,9 +988,154 @@ export function CompleteScreen({ t }) {
 // ─────────────────────────────────────────────────────────────
 // AI Voice — listening mode (full-screen dark)
 // ─────────────────────────────────────────────────────────────
+// Voice chat with 陈师傅 — speak into the mic (browser STT), the same KIMI
+// `chat()` answers, and the reply is read back aloud (browser TTS). Phases:
+//   idle      → waiting for a tap
+//   listening → mic open, live transcript
+//   thinking  → request in flight
+//   speaking  → TTS reading the reply
 export function AiVoiceScreen({ t }) {
   const nav = useNav();
-  const { recipes } = useRecipes();
+  const { byId } = useRecipes();
+
+  const [messages, setMessages] = useState([]);
+  const [phase, setPhase] = useState('idle');
+  const [userSaid, setUserSaid] = useState('');
+  const [aiText, setAiText] = useState('');
+  const [chips, setChips] = useState([]);
+  const [error, setError] = useState(null);
+  const [limitReached, setLimitReached] = useState(false);
+
+  const turnsUsed = messages.filter((m) => m.role === 'user').length;
+  const atLimit = limitReached || turnsUsed >= MAX_TURNS;
+
+  async function handleUtterance(textIn) {
+    setPhase('thinking');
+    setUserSaid(textIn);
+    setError(null);
+    setChips([]);
+    const history = messages.map((m) => ({ role: m.role, content: m.content }));
+    const sendable = [...history, { role: 'user', content: textIn }];
+    setMessages((cur) => [...cur, { role: 'user', content: textIn }]);
+    try {
+      const { intro, recipes, reply } = await chat(sendable);
+      const hasRecipes = recipes.length > 0;
+      const bubble = hasRecipes ? intro || '给你这几个建议' : reply || '⋯';
+      setMessages((cur) => [...cur, { role: 'assistant', content: bubble }]);
+      setAiText(bubble);
+      setChips(recipes);
+      // Read the names aloud too — a recipe list is useless if it's silent.
+      const names = recipes.map((id) => byId[id]?.name).filter(Boolean);
+      const spoken = hasRecipes && names.length ? `${bubble}。${names.join('、')}` : bubble;
+      setPhase('speaking');
+      speak(spoken, { onEnd: () => setPhase('idle') });
+    } catch (e) {
+      if (e instanceof LimitReachedError) {
+        setLimitReached(true);
+        setError(e.message);
+      } else {
+        setError(e.message || 'AI 暂时不在状态,稍后再试');
+      }
+      setPhase('idle');
+    }
+  }
+
+  const { listening, interim, start, stop, cancel } = useSpeechRecognition({
+    onFinal: handleUtterance,
+    onEmpty: () => setPhase('idle'),
+  });
+
+  // Tear down mic + speech if the screen unmounts mid-session.
+  useEffect(() => () => {
+    cancel();
+    cancelSpeech();
+  }, [cancel]);
+
+  function leave() {
+    cancel();
+    cancelSpeech();
+    nav.setTab('home');
+  }
+
+  function restart() {
+    cancel();
+    cancelSpeech();
+    setMessages([]);
+    setUserSaid('');
+    setAiText('');
+    setChips([]);
+    setError(null);
+    setLimitReached(false);
+    setPhase('idle');
+  }
+
+  function onMicTap() {
+    if (phase === 'listening') {
+      stop(); // finish the utterance and send
+    } else if (phase === 'speaking') {
+      cancelSpeech();
+      setPhase('idle');
+    } else if (phase === 'idle' && !atLimit) {
+      setUserSaid('');
+      setAiText('');
+      setError(null);
+      start();
+      setPhase('listening');
+    }
+  }
+
+  // Browser can't do speech — point the user at the text chat instead.
+  if (!voiceSupported) {
+    return (
+      <PhoneFrame t={t} screen="24 AI 语音 Voice">
+        <div
+          style={{
+            height: '100%', background: t.text, color: '#fff',
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', padding: '0 36px', textAlign: 'center', gap: 16,
+          }}
+        >
+          <Icon name="mic" size={40} color="rgba(255,255,255,0.4)" stroke={1.6} />
+          <div style={{ fontSize: 18, fontWeight: 600 }}>这个浏览器不支持语音</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
+            语音对话需要 Chrome、Edge 或 Safari。你可以改用文字版陈师傅。
+          </div>
+          <button
+            onClick={() => nav.push('chat')}
+            style={{
+              marginTop: 8, height: 46, padding: '0 24px', borderRadius: 23,
+              ...pinkBg, color: t.accentText, border: 'none', cursor: 'pointer',
+              fontSize: 15, fontWeight: 600, fontFamily: t.font,
+            }}
+          >
+            打开文字对话
+          </button>
+        </div>
+      </PhoneFrame>
+    );
+  }
+
+  const active = phase === 'listening' || phase === 'speaking';
+  const statusText =
+    phase === 'listening' ? '正在聆听...'
+      : phase === 'thinking' ? '陈师傅思考中...'
+        : phase === 'speaking' ? '正在回答...'
+          : atLimit ? '已达本次上限' : `陈师傅 · ${turnsUsed} / ${MAX_TURNS} 来回`;
+  const transcriptLabel =
+    phase === 'listening' ? '正在转录'
+      : phase === 'thinking' ? '你说'
+        : phase === 'speaking' || aiText ? '陈师傅' : '';
+  const transcript =
+    phase === 'listening' ? interim || '我在听⋯⋯'
+      : phase === 'thinking' ? userSaid
+        : aiText || (atLimit ? '本次语音对话已结束' : '点麦克风,跟陈师傅聊聊');
+  const hint =
+    phase === 'listening' ? '说完点一下结束 · 发送'
+      : phase === 'speaking' ? '点击可打断'
+        : phase === 'thinking' ? '⋯'
+          : atLimit ? '点右侧按钮开始新对话' : '点麦克风开始说话';
+  const micIcon = phase === 'listening' ? 'check' : 'mic';
+
   return (
     <PhoneFrame t={t} screen="24 AI 语音 Voice">
       <div style={{ height: '100%', position: 'relative', background: t.text, overflow: 'hidden' }}>
@@ -988,7 +1147,7 @@ export function AiVoiceScreen({ t }) {
           }}
         >
           <button
-            onClick={() => nav.setTab('home')}
+            onClick={leave}
             aria-label="关闭"
             style={{
               width: 36, height: 36, borderRadius: 18,
@@ -1000,17 +1159,21 @@ export function AiVoiceScreen({ t }) {
             <Icon name="close" size={16} color="#fff" stroke={2} />
           </button>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 500, letterSpacing: 0.4 }}>
-            正在聆听...
+            {statusText}
           </div>
-          <div
+          <button
+            onClick={restart}
+            aria-label="新对话"
+            title="新对话"
             style={{
               width: 36, height: 36, borderRadius: 18,
               background: 'rgba(255,255,255,0.12)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: 'none', cursor: 'pointer', padding: 0,
             }}
           >
-            <Icon name="tune" size={16} color="#fff" stroke={2} />
-          </div>
+            <Icon name="plus" size={16} color="#fff" stroke={2} />
+          </button>
         </div>
 
         {/* listening orb */}
@@ -1029,77 +1192,127 @@ export function AiVoiceScreen({ t }) {
                 position: 'absolute', inset: 0, borderRadius: '50%',
                 background: `${t.accent}30`,
                 animationDelay: `${i * 0.6}s`,
+                animationPlayState: active ? 'running' : 'paused',
+                opacity: active ? 1 : 0,
+                transition: 'opacity 0.3s',
               }}
             />
           ))}
-          <div
+          <button
+            onClick={onMicTap}
+            aria-label="麦克风"
             style={{
               position: 'absolute', inset: 30, borderRadius: '50%',
               ...pinkBg,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: `0 8px 32px ${t.accent}60`,
+              border: 'none', cursor: phase === 'thinking' ? 'default' : 'pointer', padding: 0,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, height: 50 }}>
-              {[0, 0.15, 0.3, 0.45, 0.6, 0.45, 0.3, 0.15].map((d, i) => (
-                <div
-                  key={i}
-                  className="anim-voice-bar"
-                  style={{
-                    width: 5, height: 36, borderRadius: 3,
-                    background: t.accentText,
-                    animationDelay: `${d}s`,
-                  }}
-                />
-              ))}
-            </div>
-          </div>
+            {phase === 'listening' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, height: 50 }}>
+                {[0, 0.15, 0.3, 0.45, 0.6, 0.45, 0.3, 0.15].map((d, i) => (
+                  <div
+                    key={i}
+                    className="anim-voice-bar"
+                    style={{
+                      width: 5, height: 36, borderRadius: 3,
+                      background: t.accentText,
+                      animationDelay: `${d}s`,
+                    }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Icon
+                name={phase === 'thinking' ? 'sparkle' : micIcon}
+                size={34}
+                color={t.accentText}
+                stroke={2}
+              />
+            )}
+          </button>
         </div>
 
         {/* transcript */}
         <div
           style={{
-            position: 'absolute', top: '60%', left: 28, right: 28,
+            position: 'absolute', top: '58%', left: 28, right: 28,
             color: '#fff', textAlign: 'center',
           }}
         >
-          <div
-            style={{
-              fontSize: 11, color: 'rgba(255,255,255,0.5)',
-              letterSpacing: 1, fontWeight: 600, marginBottom: 14,
-            }}
-          >
-            正在转录
+          {transcriptLabel && (
+            <div
+              style={{
+                fontSize: 11, color: 'rgba(255,255,255,0.5)',
+                letterSpacing: 1, fontWeight: 600, marginBottom: 14,
+              }}
+            >
+              {transcriptLabel}
+            </div>
+          )}
+          <div style={{ fontSize: 22, fontWeight: 500, letterSpacing: -0.4, lineHeight: 1.4 }}>
+            {transcript}
+            {phase === 'listening' && (
+              <span className="anim-typing-dot" style={{ marginLeft: 4, background: '#fff' }} />
+            )}
           </div>
-          <div style={{ fontSize: 24, fontWeight: 500, letterSpacing: -0.4, lineHeight: 1.35 }}>
-            "今晚做什么<br />
-            <span style={{ opacity: 0.5 }}>下饭的快手菜⋯⋯</span>
-            <span className="anim-typing-dot" style={{ marginLeft: 4, background: '#fff' }} />
-            "
-          </div>
+
+          {/* recipe chips from the reply */}
+          {chips.length > 0 && phase !== 'listening' && (
+            <div
+              style={{
+                display: 'flex', flexWrap: 'wrap', gap: 8,
+                justifyContent: 'center', marginTop: 18,
+              }}
+            >
+              {chips.map((id) => {
+                const r = byId[id];
+                if (!r) return null;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => { cancelSpeech(); nav.push('detail', { recipeId: id }); }}
+                    style={{
+                      height: 34, padding: '0 14px', borderRadius: 17,
+                      background: 'rgba(255,255,255,0.14)', color: '#fff',
+                      border: 'none', cursor: 'pointer',
+                      fontSize: 13, fontWeight: 500, fontFamily: t.font,
+                    }}
+                  >
+                    {r.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {error && (
+            <div style={{ marginTop: 16, fontSize: 13, color: t.accent }}>{error}</div>
+          )}
         </div>
 
-        {/* hints */}
+        {/* hint */}
         <div
           style={{
-            position: 'absolute', bottom: 100, left: 0, right: 0,
+            position: 'absolute', bottom: 116, left: 0, right: 0,
             textAlign: 'center',
             fontSize: 12, color: 'rgba(255,255,255,0.5)', letterSpacing: 0.4,
           }}
         >
-          松开发送 · 上滑取消
+          {hint}
         </div>
 
         {/* dock */}
         <div
           style={{
-            position: 'absolute', bottom: 36, left: 0, right: 0,
+            position: 'absolute', bottom: 40, left: 0, right: 0,
             display: 'flex', justifyContent: 'center', gap: 24,
           }}
         >
           <button
-            onClick={() => nav.setTab('home')}
-            aria-label="取消"
+            onClick={leave}
+            aria-label="退出"
             style={{
               width: 56, height: 56, borderRadius: 28,
               background: 'rgba(255,255,255,0.1)',
@@ -1109,19 +1322,10 @@ export function AiVoiceScreen({ t }) {
           >
             <Icon name="close" size={20} color="#fff" stroke={2} />
           </button>
-          <div
-            style={{
-              width: 72, height: 72, borderRadius: 36,
-              ...pinkBg,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: `0 8px 24px ${t.accent}50`,
-            }}
-          >
-            <Icon name="mic" size={28} color={t.accentText} stroke={2} />
-          </div>
           <button
-            onClick={() => nav.push('chat')}
-            aria-label="发送"
+            onClick={() => { cancelSpeech(); nav.push('chat'); }}
+            aria-label="切到文字"
+            title="切到文字对话"
             style={{
               width: 56, height: 56, borderRadius: 28,
               background: 'rgba(255,255,255,0.1)',
@@ -1129,7 +1333,7 @@ export function AiVoiceScreen({ t }) {
               border: 'none', cursor: 'pointer', padding: 0,
             }}
           >
-            <Icon name="check" size={22} color="#fff" stroke={2.4} />
+            <Icon name="sparkle" size={20} color="#fff" stroke={2} />
           </button>
         </div>
 
